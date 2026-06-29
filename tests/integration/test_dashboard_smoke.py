@@ -40,26 +40,28 @@ def test_dashboard_renders_and_shows_status(tmp_path, monkeypatch):
     assert not at.exception
     titles = [t.value for t in at.title]
     assert "polytrader" in titles
-    # Default language is English: the running/mode banner is a subheader.
-    assert any("RUNNING" in s.value for s in at.subheader)
+    # Default language is Chinese: the running/mode banner is a subheader.
+    assert any("运行中" in s.value for s in at.subheader)
 
 
-def test_dashboard_switches_to_chinese(tmp_path, monkeypatch):
+def test_dashboard_switches_to_english(tmp_path, monkeypatch):
     db = str(tmp_path / "dash.db")
     _seed(db)
     monkeypatch.setenv("POLYTRADER_DB", db)
 
     at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
     at.run()
-    at.selectbox(key="lang").set_value("中文").run()
-
-    assert not at.exception
-    # The status banner and a section header are now Chinese.
+    # Default is Chinese.
     assert any("运行中" in s.value for s in at.subheader)
     assert any("持仓" in m.value for m in at.markdown)
 
+    # Switching to English flips the whole page back.
+    at.selectbox(key="lang").set_value("English").run()
+    assert not at.exception
+    assert any("RUNNING" in s.value for s in at.subheader)
 
-def test_dashboard_shows_paper_leaderboard(tmp_path, monkeypatch):
+
+def test_dashboard_shows_paper_leaderboard_with_semantic_names(tmp_path, monkeypatch):
     db = str(tmp_path / "dash.db")
     paper_db = str(tmp_path / "paper.db")
     _seed(db)
@@ -70,9 +72,10 @@ def test_dashboard_shows_paper_leaderboard(tmp_path, monkeypatch):
     at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
     at.run()
     assert not at.exception
-    # English leaderboard header present by default.
-    assert any("leaderboard" in m.value.lower() for m in at.markdown)
-
-    # Switch to Chinese: the leaderboard header is translated.
-    at.selectbox(key="lang").set_value("中文").run()
+    # Chinese leaderboard header present by default, with a semantic strategy name
+    # (not the raw "market_making" identifier).
     assert any("排行榜" in m.value for m in at.markdown)
+    df = at.dataframe[0].value
+    shown = df.to_dict(orient="list")
+    assert any("做市/价差捕获" in str(v) for v in shown.values())
+    assert all("market_making" not in str(v) for v in shown.values())

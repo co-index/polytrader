@@ -9,10 +9,11 @@ crashes the UI).
 
 from __future__ import annotations
 
-# Display name -> language code. Order is the order shown in the language picker.
-LANGUAGES: dict[str, str] = {"English": "en", "中文": "zh"}
+# Display name -> language code. Order is the order shown in the language picker; the
+# first entry is the default, so 中文 leads.
+LANGUAGES: dict[str, str] = {"中文": "zh", "English": "en"}
 
-_DEFAULT = "en"
+_DEFAULT = "zh"
 
 TRANSLATIONS: dict[str, dict[str, str]] = {
     "running": {"en": "RUNNING", "zh": "运行中"},
@@ -47,9 +48,27 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 }
 
 
+# Human-readable strategy names for the leaderboard, keyed by each strategy's `name`.
+STRATEGY_LABELS: dict[str, dict[str, str]] = {
+    "market_making": {"en": "Market making", "zh": "做市/价差捕获"},
+    "mean_reversion": {"en": "Mean reversion", "zh": "均值回归"},
+    "momentum": {"en": "Momentum", "zh": "动量/趋势"},
+    "complementary_arb": {"en": "Complementary arb", "zh": "互补结果套利"},
+    "example": {"en": "Example (baseline)", "zh": "示例（基准）"},
+}
+
+
 def t(key: str, lang: str = _DEFAULT) -> str:
     """Look up a UI string by key for the given language code (e.g. "en", "zh")."""
     entry = TRANSLATIONS.get(key)
     if entry is None:
         return key
     return entry.get(lang) or entry.get(_DEFAULT) or key
+
+
+def strategy_label(name: str, lang: str = _DEFAULT) -> str:
+    """Semantic, localized display name for a strategy; falls back to the raw name."""
+    entry = STRATEGY_LABELS.get(name)
+    if entry is None:
+        return name
+    return entry.get(lang) or entry.get(_DEFAULT) or name

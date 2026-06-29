@@ -33,11 +33,11 @@ def get_paper_store() -> PaperStore:
     return paper
 
 
-def _leaderboard_row(r: dict, _) -> dict:
+def _leaderboard_row(r: dict, _, lang: str) -> dict:
     """Map a PaperStore row to a display row with translated, sorted-friendly columns."""
     win_rate = (r["wins"] / r["trades"]) if r["trades"] else 0.0
     return {
-        _("col_strategy"): r["name"],
+        _("col_strategy"): i18n.strategy_label(r["name"], lang),
         _("col_equity"): round(r["equity"], 2),
         _("col_total_pnl"): round(r["total_pnl"], 2),
         _("col_realized"): round(r["realized"], 2),
@@ -91,7 +91,7 @@ def render(store: Store) -> None:
     st.markdown(f"### {_('leaderboard')}")
     rows = get_paper_store().leaderboard()
     if rows:
-        st.dataframe([_leaderboard_row(r, _) for r in rows], width="stretch")
+        st.dataframe([_leaderboard_row(r, _, lang) for r in rows], width="stretch")
     else:
         st.caption(_("no_paper"))
 
