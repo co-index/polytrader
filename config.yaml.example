@@ -1,0 +1,22 @@
+# polytrader configuration (non-secret). Copy to config.yaml and edit.
+# Secrets (wallet key, API creds) live in .env, NEVER here.
+
+# Engine cadence
+tick_interval_seconds: 10
+
+# Mode the engine starts in. ALWAYS dry_run on a fresh start (Constitution III).
+# Switching to live is a deliberate action via the dashboard, not by editing this
+# to "live" and forgetting. Kept here only so the default is explicit.
+default_mode: dry_run
+
+# Risk limits (Constitution II). Conservative by design; widen only deliberately.
+risk:
+  per_order_max_usd: 5.0
+  total_exposure_max_usd: 50.0
+  daily_loss_limit_usd: 20.0
+  # Only markets listed here may be traded. Empty list = nothing tradable.
+  market_whitelist:
+    - "0xEXAMPLE_MARKET_CONDITION_ID"
+
+# Local SQLite store (gitignored).
+db_path: data/polytrader.db

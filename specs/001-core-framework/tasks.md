@@ -29,10 +29,10 @@ Single project: `src/polytrader/`, `tests/` at repo root (per plan.md).
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Create project structure (`src/polytrader/{__init__.py,strategy/__init__.py}`, `tests/unit/`, `tests/integration/`) per plan.md
-- [ ] T002 Initialize packaging in `pyproject.toml`: runtime deps (py-clob-client, streamlit, pydantic, pyyaml) + dev deps (pytest, pytest-mock) + `[tool.pytest.ini_options]`
-- [ ] T003 [P] Add `config.yaml.example` (risk limits, market_whitelist, tick_interval, default mode=dry_run) and `.env.example` (WALLET_PRIVATE_KEY, CLOB_API_KEY/SECRET/PASSPHRASE placeholders — no real secrets)
-- [ ] T004 [P] Configure ruff lint/format in `pyproject.toml`
+- [x] T001 Create project structure (`src/polytrader/{__init__.py,strategy/__init__.py}`, `tests/unit/`, `tests/integration/`) per plan.md
+- [x] T002 Initialize packaging in `pyproject.toml`: runtime deps (py-clob-client, streamlit, pydantic, pyyaml) + dev deps (pytest, pytest-mock) + `[tool.pytest.ini_options]`
+- [x] T003 [P] Add `config.yaml.example` (risk limits, market_whitelist, tick_interval, default mode=dry_run) and `.env.example` (WALLET_PRIVATE_KEY, CLOB_API_KEY/SECRET/PASSPHRASE placeholders — no real secrets)
+- [x] T004 [P] Configure ruff lint/format in `pyproject.toml`
 
 ---
 
@@ -42,15 +42,15 @@ Single project: `src/polytrader/`, `tests/` at repo root (per plan.md).
 its tests live here because no order may bypass it (Constitution II) and it must be tested
 before any live path exists (Constitution IV).
 
-- [ ] T005 [P] Write failing unit tests for config in `tests/unit/test_config.py` (secrets only from env, yaml limits parsed, validation errors on bad limits)
-- [ ] T006 Implement `src/polytrader/config.py` (`Settings`, `RiskConfig` pydantic models; load `.env` + `config.yaml`) to pass T005
-- [ ] T007 [P] Write failing unit tests for store in `tests/unit/test_store.py` (schema init, order/fill/position round-trip, `engine_state` command/status read-write, event log)
-- [ ] T008 Implement `src/polytrader/store.py` (SQLite schema + record_order/record_fill/upsert_position/log_event, engine_state get/set_command/set_status, reads for dashboard) to pass T007
-- [ ] T009 [P] Define strategy types in `src/polytrader/strategy/base.py` (`Strategy` Protocol, `OrderIntent`, `MarketState`, `Decision`, `StrategyContext` with validation)
-- [ ] T010 [P] Write failing unit tests for strategy + example in `tests/unit/test_strategy.py` (OrderIntent validation, example returns valid intents, no SDK/IO access)
-- [ ] T011 Implement `src/polytrader/strategy/example.py` bundled example strategy to pass T010
-- [ ] T012 [P] Write exhaustive failing unit tests for the risk gate caps in `tests/unit/test_risk.py` (per-order cap reject, exposure cap reject, non-whitelisted reject with reason, in-limit approve) — Constitution IV
-- [ ] T013 Implement `src/polytrader/risk.py` `RiskManager.check()` (per-order cap, total exposure cap, market whitelist; reads exposure from store; sets specific reason on reject) to pass T012
+- [x] T005 [P] Write failing unit tests for config in `tests/unit/test_config.py` (secrets only from env, yaml limits parsed, validation errors on bad limits)
+- [x] T006 Implement `src/polytrader/config.py` (`Settings`, `RiskConfig` pydantic models; load `.env` + `config.yaml`) to pass T005
+- [x] T007 [P] Write failing unit tests for store in `tests/unit/test_store.py` (schema init, order/fill/position round-trip, `engine_state` command/status read-write, event log)
+- [x] T008 Implement `src/polytrader/store.py` (SQLite schema + record_order/record_fill/upsert_position/log_event, engine_state get/set_command/set_status, reads for dashboard) to pass T007
+- [x] T009 [P] Define strategy types in `src/polytrader/strategy/base.py` (`Strategy` Protocol, `OrderIntent`, `MarketState`, `Decision`, `StrategyContext` with validation)
+- [x] T010 [P] Write failing unit tests for strategy + example in `tests/unit/test_strategy.py` (OrderIntent validation, example returns valid intents, no SDK/IO access)
+- [x] T011 Implement `src/polytrader/strategy/example.py` bundled example strategy to pass T010
+- [x] T012 [P] Write exhaustive failing unit tests for the risk gate caps in `tests/unit/test_risk.py` (per-order cap reject, exposure cap reject, non-whitelisted reject with reason, in-limit approve) — Constitution IV
+- [x] T013 Implement `src/polytrader/risk.py` `RiskManager.check()` (per-order cap, total exposure cap, market whitelist; reads exposure from store; sets specific reason on reject) to pass T012
 - [ ] T014 [P] Write failing tests in `tests/unit/test_client.py` (guard: only `client.py` imports `py_clob_client`; mocked-SDK tests for get_markets/place_order/cancel/cancel_all/get_positions/get_balance + rate-limit backoff)
 - [ ] T015 Implement `src/polytrader/client.py` `PolymarketClient` — sole `py_clob_client` chokepoint, mockable interface, rate-limit throttling/backoff — to pass T014
 
