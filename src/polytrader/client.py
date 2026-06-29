@@ -83,6 +83,13 @@ class PolymarketClient:
         raise last  # pragma: no cover
 
     # ---- market data ----
+    def get_markets(self) -> list[MarketState]:
+        """Snapshot every market configured in settings.markets."""
+        return [
+            self.market_state(m.market_id, m.token_id, m.question)
+            for m in self.settings.markets
+        ]
+
     def market_state(self, market_id: str, token_id: str, question: str = "") -> MarketState:
         book = self._with_retry(self._clob.get_order_book, token_id)
         best_bid = max((float(b.price) for b in (book.bids or [])), default=0.0)

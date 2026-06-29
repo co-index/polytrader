@@ -69,14 +69,14 @@ orders recorded with no `place_order` call; switch to live (tiny limits), confir
 
 ### Tests for User Story 1 (write first, ensure they FAIL)
 
-- [ ] T016 [P] [US1] Integration test in `tests/integration/test_dry_run_tick.py`: full dry-run tick (data→strategy→risk→simulate→record); assert `place_order` never called, simulated order+fill persisted
-- [ ] T017 [P] [US1] Integration test in `tests/integration/test_live_tick.py`: live-mode tick places exactly the risk-approved order via mocked client; an over-limit intent is rejected and not placed
+- [x] T016 [P] [US1] Integration test in `tests/integration/test_dry_run_tick.py`: full dry-run tick (data→strategy→risk→simulate→record); assert `place_order` never called, simulated order+fill persisted
+- [x] T017 [P] [US1] Integration test in `tests/integration/test_live_tick.py`: live-mode tick places exactly the risk-approved order via mocked client; an over-limit intent is rejected and not placed
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Implement `src/polytrader/engine.py` `Engine`: tick loop, default `mode=dry_run` on start, fetch markets via client, call `strategy.on_tick`, route every intent through `risk.check`, simulate (dry_run) vs `client.place_order` (live), record orders/fills, structured logging (depends on T006/T008/T013/T015)
-- [ ] T019 [US1] Add strategy failure isolation in `engine.py` (catch strategy exceptions, drop malformed intents, log error, never crash the loop)
-- [ ] T020 [US1] Add engine entry point `python -m polytrader.engine` in `src/polytrader/engine.py` wiring config→store→client→risk→strategy
+- [x] T018 [US1] Implement `src/polytrader/engine.py` `Engine`: tick loop, default `mode=dry_run` on start, fetch markets via client, call `strategy.on_tick`, route every intent through `risk.check`, simulate (dry_run) vs `client.place_order` (live), record orders/fills, structured logging (depends on T006/T008/T013/T015)
+- [x] T019 [US1] Add strategy failure isolation in `engine.py` (catch strategy exceptions, drop malformed intents, log error, never crash the loop)
+- [x] T020 [US1] Add engine entry point `python -m polytrader.engine` in `src/polytrader/engine.py` wiring config→store→client→risk→strategy
 
 **Checkpoint**: Trading core works in dry-run and live (mocked); MVP demonstrable.
 

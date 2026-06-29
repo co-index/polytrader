@@ -84,6 +84,27 @@ def test_market_state_built_from_order_book():
     assert ms.midpoint == 0.41
 
 
+def test_get_markets_iterates_configured_markets():
+    settings = Settings(
+        risk=dict(per_order_max_usd=5, total_exposure_max_usd=50,
+                  daily_loss_limit_usd=20, market_whitelist=["m1"]),
+        markets=[dict(market_id="m1", token_id="t1", question="Will it rain?")],
+    )
+    clob = MagicMock()
+    clob.get_order_book.return_value = SimpleNamespace(
+        market="m1", asset_id="t1",
+        bids=[SimpleNamespace(price="0.40", size="5")],
+        asks=[SimpleNamespace(price="0.42", size="3")],
+        timestamp="t0",
+    )
+    client = PolymarketClient(settings, clob=clob)
+    markets = client.get_markets()
+    assert len(markets) == 1
+    assert markets[0].market_id == "m1"
+    assert markets[0].token_id == "t1"
+    assert markets[0].question == "Will it rain?"
+
+
 def test_place_order_retries_then_succeeds_on_transient_error():
     clob = MagicMock()
     clob.create_and_post_order.side_effect = [

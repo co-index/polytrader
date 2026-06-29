@@ -18,5 +18,12 @@ risk:
   market_whitelist:
     - "0xEXAMPLE_MARKET_CONDITION_ID"
 
+# Markets the engine polls each tick. market_id must also appear in risk.market_whitelist.
+# token_id is the specific outcome token (CLOB asset id) to price/trade.
+markets:
+  - market_id: "0xEXAMPLE_MARKET_CONDITION_ID"
+    token_id: "EXAMPLE_OUTCOME_TOKEN_ID"
+    question: "Example: will X happen by date Y?"
+
 # Local SQLite store (gitignored).
 db_path: data/polytrader.db

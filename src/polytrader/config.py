@@ -26,6 +26,14 @@ class RiskConfig(BaseModel):
     market_whitelist: list[str] = Field(default_factory=list)
 
 
+class MarketSpec(BaseModel):
+    """A market/outcome-token the engine should poll each tick."""
+
+    market_id: str
+    token_id: str
+    question: str = ""
+
+
 class Secrets(BaseModel):
     """Loaded only from the environment; never persisted or logged."""
 
@@ -55,6 +63,7 @@ class Settings(BaseModel):
     default_mode: Mode = "dry_run"
     db_path: str = "data/polytrader.db"
     risk: RiskConfig
+    markets: list[MarketSpec] = Field(default_factory=list)
     secrets: Secrets = Field(default_factory=Secrets)
 
     @classmethod
