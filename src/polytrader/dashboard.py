@@ -52,19 +52,24 @@ def _filter_orders(orders: list[dict], query: str) -> list[dict]:
     return [o for o in orders if any(q in str(v).lower() for v in o.values())]
 
 
-def _open_trades_dialog(name: str, label: str, _) -> None:
-    """Modal popup listing one strategy's trades, with a search filter."""
-
-    @st.dialog(f"{_('order_details')} · {label}", width="large")
-    def _dialog() -> None:
-        query = st.text_input(_("search"), key="trade_search")
-        orders = _filter_orders(get_paper_store().orders(name), query)
-        if orders:
-            st.dataframe(orders, width="stretch", hide_index=True)
-        else:
-            st.caption(_("no_orders"))
-
-    _dialog()
+def _render_trades_panel(_, lang: str) -> None:
+    """Inline panel for the selected strategy's trades + search. Inline (not a modal) so
+    it survives auto-refresh reruns, which would close an st.dialog."""
+    name = st.session_state.get("lb_selected")
+    if not name:
+        return
+    label = i18n.strategy_label(name, lang)
+    head, close = st.columns([6, 1], vertical_alignment="center")
+    head.markdown(f"#### {_('order_details')} · {label}")
+    if close.button(_("close"), key="close_details"):
+        st.session_state["lb_selected"] = None
+        st.rerun()
+    query = st.text_input(_("search"), key="trade_search")
+    orders = _filter_orders(get_paper_store().orders(name), query)
+    if orders:
+        st.dataframe(orders, width="stretch", hide_index=True)
+    else:
+        st.caption(_("no_orders"))
 
 
 _LB_COLS = ("col_strategy", "col_total_pnl", "col_equity", "col_realized",
@@ -83,7 +88,7 @@ def _pnl_md(value: float) -> str:
 
 def _render_leaderboard(_, lang: str) -> None:
     """Paper Lab leaderboard. Each strategy name is a link-style button; clicking it
-    pops up that strategy's trades — no checkbox column, the row itself is the action."""
+    opens that strategy's trades inline below — no checkbox column, the row is the action."""
     rows = get_paper_store().leaderboard()
     if not rows:
         st.caption(_("no_paper"))
@@ -100,7 +105,7 @@ def _render_leaderboard(_, lang: str) -> None:
         # No stretch: a tertiary button hugs its label at the column's left edge, so the
         # name lines up under the "strategy" header instead of being centered/indented.
         if cells[0].button(label, key=f"lb_row_{r['name']}", type="tertiary"):
-            _open_trades_dialog(r["name"], label, _)
+            st.session_state["lb_selected"] = r["name"]
         win = (r["wins"] / r["trades"]) if r["trades"] else 0.0
         cells[1].markdown(_pnl_md(r["total_pnl"]))
         cells[2].write(f"{r['equity']:.2f}")
@@ -110,6 +115,8 @@ def _render_leaderboard(_, lang: str) -> None:
         cells[6].write(r["positions"])
         cells[7].write(f"{win:.0%}")
         cells[8].write(r["rejects"])
+
+    _render_trades_panel(_, lang)
 
 
 def _render_live_data(store: Store, _) -> None:
@@ -178,11 +185,11 @@ def render(store: Store) -> None:
     st.fragment(run_every=every)(lambda: _render_live_data(store, _))()
 
     # ===== Paper Lab: all strategies, always simulated =====
-    # Rendered outside the auto-refresh fragment so row-selection + the trades popup
-    # stay stable (an auto-rerunning table would drop the selection every few seconds).
+    # Auto-refreshes like the live blocks. Selection lives in session_state and the trade
+    # detail is inline (not a modal), so the panel survives the periodic reruns.
     st.header(_("leaderboard"))
     st.caption(_("paper_lab_note"))
-    _render_leaderboard(_, lang)
+    st.fragment(run_every=every)(lambda: _render_leaderboard(_, lang))()
 
 
 def main() -> None:  # pragma: no cover - Streamlit entry
