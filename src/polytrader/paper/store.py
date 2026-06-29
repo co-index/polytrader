@@ -13,6 +13,8 @@ from pathlib import Path
 _COLS = ("name", "equity", "total_pnl", "realized", "unrealized",
          "fills", "positions", "wins", "trades", "rejects")
 
+_ORDER_COLS = ("ts", "token_id", "side", "size", "price", "status")
+
 
 class PaperStore:
     def __init__(self, db_path: str):
@@ -29,6 +31,14 @@ class PaperStore:
                 ts TEXT, name TEXT, equity REAL, total_pnl REAL, realized REAL,
                 unrealized REAL, fills INTEGER, positions INTEGER, wins INTEGER,
                 trades INTEGER, rejects INTEGER
+            )
+            """
+        )
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS paper_orders (
+                strategy TEXT, ts TEXT, token_id TEXT, side TEXT,
+                size REAL, price REAL, status TEXT
             )
             """
         )
@@ -50,3 +60,20 @@ class PaperStore:
             "SELECT * FROM paper_leaderboard ORDER BY total_pnl DESC"
         ).fetchall()
         return [{k: r[k] for k in _COLS} for r in rows]
+
+    def write_orders(self, strategy: str, rows: list[dict]) -> None:
+        """Replace the stored order log for one strategy (leaves others intact)."""
+        c = self._conn
+        c.execute("DELETE FROM paper_orders WHERE strategy = ?", (strategy,))
+        c.executemany(
+            "INSERT INTO paper_orders (strategy, ts, token_id, side, size, price, status)"
+            " VALUES (?,?,?,?,?,?,?)",
+            [(strategy, *(r[k] for k in _ORDER_COLS)) for r in rows],
+        )
+        c.commit()
+
+    def orders(self, strategy: str) -> list[dict]:
+        rows = self._conn.execute(
+            "SELECT * FROM paper_orders WHERE strategy = ? ORDER BY rowid", (strategy,)
+        ).fetchall()
+        return [{k: r[k] for k in _ORDER_COLS} for r in rows]

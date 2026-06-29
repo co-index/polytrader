@@ -17,6 +17,12 @@ def _seed_paper(db_path: str):
         "name": "market_making", "equity": 1002.5, "total_pnl": 2.5, "realized": 1.0,
         "unrealized": 1.5, "fills": 4, "positions": 1, "wins": 1, "trades": 1, "rejects": 0,
     }], ts="t1")
+    ps.write_orders("market_making", [
+        {"ts": "t1", "token_id": "alpha", "side": "BUY", "size": 5.0,
+         "price": 0.40, "status": "filled"},
+        {"ts": "t2", "token_id": "beta", "side": "SELL", "size": 5.0,
+         "price": 0.55, "status": "filled"},
+    ])
 
 
 def _seed(db_path: str):
@@ -95,3 +101,26 @@ def test_dashboard_shows_paper_leaderboard_with_semantic_names(tmp_path, monkeyp
     all_dfs = " ".join(str(d.value.to_dict(orient="list")) for d in at.dataframe)
     assert "做市/价差捕获" in all_dfs
     assert "market_making" not in all_dfs
+
+
+def test_order_details_drilldown_supports_search(tmp_path, monkeypatch):
+    db = str(tmp_path / "dash.db")
+    paper_db = str(tmp_path / "paper.db")
+    _seed(db)
+    _seed_paper(paper_db)  # market_making has two fills: alpha BUY, beta SELL
+    monkeypatch.setenv("POLYTRADER_DB", db)
+    monkeypatch.setenv("POLYTRADER_PAPER_DB", paper_db)
+
+    at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
+    at.run()
+    assert not at.exception
+    # A strategy is selected by default; both of its orders show.
+    assert at.selectbox(key="order_strategy").value == "market_making"
+    details = at.dataframe[-1].value.to_dict(orient="list")
+    assert "alpha" in str(details) and "beta" in str(details)
+
+    # Searching narrows the order log to matching rows only.
+    at.text_input(key="order_search").set_value("alpha").run()
+    assert not at.exception
+    filtered = at.dataframe[-1].value.to_dict(orient="list")
+    assert "alpha" in str(filtered) and "beta" not in str(filtered)

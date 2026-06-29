@@ -48,6 +48,16 @@ def test_each_strategy_evolves_independently_and_writes_one_row():
     assert lb["market_making"]["fills"] == 2
 
 
+def test_fills_are_persisted_as_per_strategy_orders():
+    entries = [_entry(ExampleStrategy(size=1.0))]
+    runner, store = _runner(entries)
+    runner.tick()
+    orders = store.orders("example")
+    assert len(orders) == 1
+    assert orders[0]["status"] == "filled"
+    assert orders[0]["ts"] == "t1"  # the tick timestamp
+
+
 def test_rejected_intents_are_counted_not_executed():
     entries = [_entry(ExampleStrategy(size=1.0), whitelist=())]  # nothing whitelisted
     runner, store = _runner(entries)

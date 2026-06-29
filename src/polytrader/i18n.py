@@ -46,6 +46,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "col_rejects": {"en": "rejects", "zh": "拒单"},
     "auto_refresh": {"en": "Auto-refresh", "zh": "自动刷新"},
     "live_engine": {"en": "Live engine", "zh": "实盘引擎"},
+    "order_details": {"en": "Order details", "zh": "订单详情"},
+    "select_strategy": {"en": "Select a strategy", "zh": "选择策略"},
+    "search": {"en": "Search (token / side / status …)", "zh": "搜索（token / 方向 / 状态 …）"},
     "paper_lab_note": {
         "en": "Always simulated, independent of the engine's live/dry-run mode. "
               "Real trades appear under Live engine above.",

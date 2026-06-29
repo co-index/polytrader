@@ -89,3 +89,22 @@ def test_summary_has_all_leaderboard_keys():
     for k in ("name", "equity", "total_pnl", "realized", "unrealized",
               "fills", "positions", "wins", "trades", "rejects"):
         assert k in s
+
+
+def test_records_each_fill_in_the_order_log():
+    b = PaperBroker("s", bankroll=1000.0)
+    b.execute(_buy(0.40), _mkt(best_ask=0.40), ts="2026-06-29T01:00:00")
+    log = b.orders()
+    assert len(log) == 1
+    o = log[0]
+    assert o["ts"] == "2026-06-29T01:00:00"
+    assert o["token_id"] == "t1" and o["side"] == "BUY"
+    assert o["size"] == 10.0 and o["price"] == 0.40
+    assert o["status"] == "filled"
+
+
+def test_unfilled_intent_is_not_logged():
+    b = PaperBroker("s", bankroll=1000.0)
+    # BUY below the ask is not marketable -> no fill, no order record.
+    b.execute(_buy(0.39), _mkt(best_ask=0.42))
+    assert b.orders() == []

@@ -69,6 +69,27 @@ def _render_leaderboard(_, lang: str) -> None:
         st.caption(_("no_paper"))
 
 
+def _render_order_details(_, lang: str) -> None:
+    """Drill into one strategy's paper order log, with a free-text search filter."""
+    paper = get_paper_store()
+    names = [r["name"] for r in paper.leaderboard()]
+    if not names:
+        return
+    st.markdown(f"#### {_('order_details')}")
+    selected = st.selectbox(
+        _("select_strategy"), names,
+        format_func=lambda n: i18n.strategy_label(n, lang), key="order_strategy",
+    )
+    query = st.text_input(_("search"), key="order_search").strip().lower()
+    orders = paper.orders(selected)
+    if query:
+        orders = [o for o in orders if any(query in str(v).lower() for v in o.values())]
+    if orders:
+        st.dataframe(orders, width="stretch")
+    else:
+        st.caption(_("no_orders"))
+
+
 def _render_live_data(store: Store, _) -> None:
     """Live engine data (P&L, positions, orders, events) — reads the live store."""
     pnl = store.pnl_today()
@@ -138,6 +159,7 @@ def render(store: Store) -> None:
     st.header(_("leaderboard"))
     st.caption(_("paper_lab_note"))
     st.fragment(run_every=every)(lambda: _render_leaderboard(_, lang))()
+    _render_order_details(_, lang)
 
 
 def main() -> None:  # pragma: no cover - Streamlit entry

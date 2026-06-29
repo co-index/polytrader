@@ -53,6 +53,7 @@ class PaperRunner:
             return
 
         market_by_token = {m.token_id: m for m in snapshot}
+        ts = self.tick_ts()
 
         for strategy, broker, risk in self.entries:
             try:
@@ -69,12 +70,13 @@ class PaperRunner:
                     continue
                 market = market_by_token.get(intent.token_id)
                 if market is not None:
-                    broker.execute(intent, market)
+                    broker.execute(intent, market, ts)
 
             broker.mark_to_market(snapshot)
+            self.store.write_orders(strategy.name, broker.orders())
 
         self.store.write_leaderboard(
-            [broker.summary() for _, broker, _ in self.entries], ts=self.tick_ts()
+            [broker.summary() for _, broker, _ in self.entries], ts=ts
         )
 
     def run(self) -> None:  # pragma: no cover - long-running loop

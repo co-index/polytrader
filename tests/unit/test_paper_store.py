@@ -25,3 +25,30 @@ def test_second_write_replaces_snapshot():
     lb = s.leaderboard()
     assert [r["name"] for r in lb] == ["a", "d"]
     assert lb[0]["total_pnl"] == 5.0  # replaced, not appended
+
+
+def _order(ts, token_id="t1", side="BUY", size=5.0, price=0.4):
+    return {"ts": ts, "token_id": token_id, "side": side, "size": size,
+            "price": price, "status": "filled"}
+
+
+def test_write_and_read_orders_per_strategy():
+    s = PaperStore(":memory:")
+    s.init_schema()
+    s.write_orders("momentum", [_order("t1"), _order("t2", side="SELL")])
+    s.write_orders("example", [_order("t3")])
+    rows = s.orders("momentum")
+    assert len(rows) == 2
+    assert {r["side"] for r in rows} == {"BUY", "SELL"}
+    assert s.orders("example")[0]["token_id"] == "t1"
+
+
+def test_write_orders_replaces_that_strategys_rows_only():
+    s = PaperStore(":memory:")
+    s.init_schema()
+    s.write_orders("momentum", [_order("t1"), _order("t2")])
+    s.write_orders("example", [_order("t1")])
+    s.write_orders("momentum", [_order("t9")])  # replace momentum only
+    assert len(s.orders("momentum")) == 1
+    assert s.orders("momentum")[0]["ts"] == "t9"
+    assert len(s.orders("example")) == 1  # untouched

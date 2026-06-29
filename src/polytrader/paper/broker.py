@@ -37,9 +37,10 @@ class PaperBroker:
     def __post_init__(self) -> None:
         self.cash = self.bankroll
         self._pos: dict[str, _Pos] = {}
+        self._orders: list[dict] = []
 
     # ---- order handling (gate already passed upstream) ----
-    def execute(self, intent: OrderIntent, market: MarketState) -> PaperFill | None:
+    def execute(self, intent: OrderIntent, market: MarketState, ts: str = "") -> PaperFill | None:
         fill = try_fill(intent, market)
         if fill is None:
             return None
@@ -47,7 +48,15 @@ class PaperBroker:
         self._apply(intent.token_id, intent.market_id, delta, fill.price)
         self.cash += -delta * fill.price
         self.fills += 1
+        self._orders.append({
+            "ts": ts, "token_id": fill.token_id, "side": fill.side,
+            "size": fill.size, "price": fill.price, "status": "filled",
+        })
         return fill
+
+    def orders(self) -> list[dict]:
+        """The per-fill order log (executed trades, newest last)."""
+        return list(self._orders)
 
     def _apply(self, token_id: str, market_id: str, delta: float, price: float) -> None:
         p = self._pos.setdefault(token_id, _Pos(market_id=market_id))
