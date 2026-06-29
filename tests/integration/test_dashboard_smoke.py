@@ -86,10 +86,12 @@ def test_dashboard_shows_paper_leaderboard_with_semantic_names(tmp_path, monkeyp
     at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
     at.run()
     assert not at.exception
-    # Chinese leaderboard header present by default, with a semantic strategy name
-    # (not the raw "market_making" identifier).
-    assert any("排行榜" in m.value for m in at.markdown)
-    df = at.dataframe[0].value
-    shown = df.to_dict(orient="list")
-    assert any("做市/价差捕获" in str(v) for v in shown.values())
-    assert all("market_making" not in str(v) for v in shown.values())
+    # Chinese leaderboard section header present, plus the paper-only note.
+    headings = [h.value for h in at.header] + [m.value for m in at.markdown]
+    assert any("排行榜" in h for h in headings)
+    assert any("模拟数据" in c.value for c in at.caption)
+    # Semantic strategy name shown (not the raw "market_making" identifier),
+    # in whichever dataframe is the leaderboard.
+    all_dfs = " ".join(str(d.value.to_dict(orient="list")) for d in at.dataframe)
+    assert "做市/价差捕获" in all_dfs
+    assert "market_making" not in all_dfs

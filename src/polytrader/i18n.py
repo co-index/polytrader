@@ -45,6 +45,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "col_win_rate": {"en": "win rate", "zh": "胜率"},
     "col_rejects": {"en": "rejects", "zh": "拒单"},
     "auto_refresh": {"en": "Auto-refresh", "zh": "自动刷新"},
+    "live_engine": {"en": "Live engine", "zh": "实盘引擎"},
+    "paper_lab_note": {
+        "en": "Always simulated, independent of the engine's live/dry-run mode. "
+              "Real trades appear under Live engine above.",
+        "zh": "始终是模拟数据，与引擎的实盘/模拟模式无关。实盘成交见上方「实盘引擎」。",
+    },
     "language": {"en": "Language", "zh": "语言"},
 }
 

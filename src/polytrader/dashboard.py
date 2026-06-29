@@ -60,15 +60,17 @@ def _render_status(store: Store, _) -> None:
         st.error(_("stopped_reason").format(reason=state.stopped_reason))
 
 
-def _render_data(store: Store, _, lang: str) -> None:
-    """Live data sections (leaderboard, P&L, positions, orders, events)."""
-    st.markdown(f"### {_('leaderboard')}")
+def _render_leaderboard(_, lang: str) -> None:
+    """Paper Lab leaderboard — always simulated, reads the paper store."""
     rows = get_paper_store().leaderboard()
     if rows:
         st.dataframe([_leaderboard_row(r, _, lang) for r in rows], width="stretch")
     else:
         st.caption(_("no_paper"))
 
+
+def _render_live_data(store: Store, _) -> None:
+    """Live engine data (P&L, positions, orders, events) — reads the live store."""
     pnl = store.pnl_today()
     st.metric(_("pnl_today"), f"{pnl.realized_usd:.2f}")
 
@@ -111,10 +113,11 @@ def render(store: Store) -> None:
 
     state = store.get_engine_state()
 
-    # Status banner (live).
+    # ===== Live engine: the single configured strategy, real or dry-run =====
+    st.header(_("live_engine"))
     st.fragment(run_every=every)(lambda: _render_status(store, _))()
 
-    # ---- controls (write commands to the store) ----
+    # ---- controls (write commands to the live store) ----
     c1, c2, c3 = st.columns(3)
     # One button toggles run/stop: it shows the action it will perform.
     if c1.button(_("stop") if state.run else _("start"), key="run_toggle"):
@@ -129,8 +132,12 @@ def render(store: Store) -> None:
         store.set_command(kill=True)
         st.rerun()
 
-    # Data sections (live).
-    st.fragment(run_every=every)(lambda: _render_data(store, _, lang))()
+    st.fragment(run_every=every)(lambda: _render_live_data(store, _))()
+
+    # ===== Paper Lab: all strategies, always simulated =====
+    st.header(_("leaderboard"))
+    st.caption(_("paper_lab_note"))
+    st.fragment(run_every=every)(lambda: _render_leaderboard(_, lang))()
 
 
 def main() -> None:  # pragma: no cover - Streamlit entry
