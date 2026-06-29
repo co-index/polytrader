@@ -145,9 +145,11 @@ def main() -> None:  # pragma: no cover - wiring entry point
     store.set_command(run=True, mode="dry_run")
     client = PolymarketClient(settings)
     risk = RiskManager(settings.risk, store)
-    from .strategy.example import ExampleStrategy
+    # Complementary-outcome arbitrage: needs BOTH outcome tokens of each market in
+    # settings.markets so it can see a pair (two MarketSpecs sharing a market_id).
+    from .strategy.complementary_arb import ComplementaryArbStrategy
 
-    Engine(client, risk, store, ExampleStrategy(), settings).run()
+    Engine(client, risk, store, ComplementaryArbStrategy(), settings).run()
 
 
 if __name__ == "__main__":  # pragma: no cover
