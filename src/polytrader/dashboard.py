@@ -63,7 +63,7 @@ def render(store: Store) -> None:
     st.markdown("### Positions")
     positions = store.positions()
     if positions:
-        st.dataframe([p.__dict__ for p in positions], use_container_width=True)
+        st.dataframe([p.__dict__ for p in positions], width="stretch")
     else:
         st.caption("No open positions.")
 
@@ -71,7 +71,7 @@ def render(store: Store) -> None:
     st.markdown("### Recent orders")
     orders = store.recent_orders(50)
     if orders:
-        st.dataframe([o.__dict__ for o in orders], use_container_width=True)
+        st.dataframe([o.__dict__ for o in orders], width="stretch")
     else:
         st.caption("No orders yet.")
 
@@ -79,7 +79,7 @@ def render(store: Store) -> None:
     st.markdown("### Recent events")
     events = store.recent_events(50)
     if events:
-        st.dataframe([e.__dict__ for e in events], use_container_width=True)
+        st.dataframe([e.__dict__ for e in events], width="stretch")
     else:
         st.caption("No events yet.")
 
