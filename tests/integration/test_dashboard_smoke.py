@@ -113,14 +113,11 @@ def test_clicking_a_strategy_row_pops_up_its_trades_with_search(tmp_path, monkey
     at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
     at.run()
     assert not at.exception
-    # Click the strategy row -> its trades open inline with a search box.
+    # Click the strategy row -> its trades open in a modal popup with a search box.
+    # (In-modal search is covered by the _filter_orders unit test; AppTest can't drive a
+    # second interaction inside an st.dialog.)
     at.button(key="lb_row_market_making").click().run()
     assert not at.exception
     trades = " ".join(str(d.value.to_dict(orient="list")) for d in at.dataframe)
     assert "alpha" in trades and "beta" in trades
-
-    # The search box narrows the trade list (inline panel survives the rerun).
-    at.text_input(key="trade_search").set_value("alpha").run()
-    assert not at.exception
-    trades = " ".join(str(d.value.to_dict(orient="list")) for d in at.dataframe)
-    assert "alpha" in trades and "beta" not in trades
+    assert at.text_input(key="trade_search") is not None

@@ -52,24 +52,20 @@ def _filter_orders(orders: list[dict], query: str) -> list[dict]:
     return [o for o in orders if any(q in str(v).lower() for v in o.values())]
 
 
-def _render_trades_panel(_, lang: str) -> None:
-    """Inline panel for the selected strategy's trades + search. Inline (not a modal) so
-    it survives auto-refresh reruns, which would close an st.dialog."""
-    name = st.session_state.get("lb_selected")
-    if not name:
-        return
-    label = i18n.strategy_label(name, lang)
-    head, close = st.columns([6, 1], vertical_alignment="center")
-    head.markdown(f"#### {_('order_details')} · {label}")
-    if close.button(_("close"), key="close_details"):
-        st.session_state["lb_selected"] = None
-        st.rerun()
-    query = st.text_input(_("search"), key="trade_search")
-    orders = _filter_orders(get_paper_store().orders(name), query)
-    if orders:
-        st.dataframe(orders, width="stretch", hide_index=True)
-    else:
-        st.caption(_("no_orders"))
+def _open_trades_dialog(name: str, label: str, _) -> None:
+    """Modal popup listing one strategy's trades, with a search filter. The leaderboard
+    is kept out of auto-refresh so this dialog isn't closed by a periodic rerun."""
+
+    @st.dialog(f"{_('order_details')} · {label}", width="large")
+    def _dialog() -> None:
+        query = st.text_input(_("search"), key="trade_search")
+        orders = _filter_orders(get_paper_store().orders(name), query)
+        if orders:
+            st.dataframe(orders, width="stretch", hide_index=True)
+        else:
+            st.caption(_("no_orders"))
+
+    _dialog()
 
 
 _LB_COLS = ("col_strategy", "col_total_pnl", "col_equity", "col_realized",
@@ -93,7 +89,10 @@ def _render_leaderboard(_, lang: str) -> None:
     if not rows:
         st.caption(_("no_paper"))
         return
-    st.caption(_("click_row_hint"))
+    hint, refresh = st.columns([6, 1], vertical_alignment="center")
+    hint.caption(_("click_row_hint"))
+    if refresh.button(_("refresh"), key="lb_refresh"):
+        st.rerun()
 
     header = st.columns(_LB_WIDTHS, vertical_alignment="center")
     for col, key in zip(header, _LB_COLS, strict=True):
@@ -105,7 +104,7 @@ def _render_leaderboard(_, lang: str) -> None:
         # No stretch: a tertiary button hugs its label at the column's left edge, so the
         # name lines up under the "strategy" header instead of being centered/indented.
         if cells[0].button(label, key=f"lb_row_{r['name']}", type="tertiary"):
-            st.session_state["lb_selected"] = r["name"]
+            _open_trades_dialog(r["name"], label, _)
         win = (r["wins"] / r["trades"]) if r["trades"] else 0.0
         cells[1].markdown(_pnl_md(r["total_pnl"]))
         cells[2].write(f"{r['equity']:.2f}")
@@ -115,8 +114,6 @@ def _render_leaderboard(_, lang: str) -> None:
         cells[6].write(r["positions"])
         cells[7].write(f"{win:.0%}")
         cells[8].write(r["rejects"])
-
-    _render_trades_panel(_, lang)
 
 
 def _render_live_data(store: Store, _) -> None:
@@ -185,11 +182,11 @@ def render(store: Store) -> None:
     st.fragment(run_every=every)(lambda: _render_live_data(store, _))()
 
     # ===== Paper Lab: all strategies, always simulated =====
-    # Auto-refreshes like the live blocks. Selection lives in session_state and the trade
-    # detail is inline (not a modal), so the panel survives the periodic reruns.
+    # NOT auto-refreshed: a periodic rerun would close the trades modal. Use the Refresh
+    # button to pull the latest snapshot. (The live-engine blocks above still auto-update.)
     st.header(_("leaderboard"))
     st.caption(_("paper_lab_note"))
-    st.fragment(run_every=every)(lambda: _render_leaderboard(_, lang))()
+    _render_leaderboard(_, lang)
 
 
 def main() -> None:  # pragma: no cover - Streamlit entry

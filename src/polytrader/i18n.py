@@ -52,6 +52,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "zh": "点击某一行查看该策略的全部交易。",
     },
     "close": {"en": "✕ Close", "zh": "✕ 关闭"},
+    "refresh": {"en": "🔄 Refresh", "zh": "🔄 刷新"},
     "search": {"en": "Search (token / side / status …)", "zh": "搜索（token / 方向 / 状态 …）"},
     "paper_lab_note": {
         "en": "Always simulated, independent of the engine's live/dry-run mode. "
