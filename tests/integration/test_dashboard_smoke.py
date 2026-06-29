@@ -44,6 +44,20 @@ def test_dashboard_renders_and_shows_status(tmp_path, monkeypatch):
     assert any("运行中" in s.value for s in at.subheader)
 
 
+def test_run_toggle_button_flips_run_state(tmp_path, monkeypatch):
+    db = str(tmp_path / "dash.db")
+    _seed(db)  # seeds run=True
+    monkeypatch.setenv("POLYTRADER_DB", db)
+
+    at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
+    at.run()
+    btn = at.button(key="run_toggle")
+    assert "停止" in btn.label  # running -> single button offers Stop
+    btn.click().run()
+    assert not at.exception
+    assert Store(db).get_engine_state().run is False  # one button toggled it off
+
+
 def test_dashboard_switches_to_english(tmp_path, monkeypatch):
     db = str(tmp_path / "dash.db")
     _seed(db)

@@ -49,6 +49,51 @@ def _leaderboard_row(r: dict, _, lang: str) -> dict:
     }
 
 
+def _render_status(store: Store, _) -> None:
+    """Live status banner — re-reads the store so auto-refresh shows the truth."""
+    state = store.get_engine_state()
+    running = _("running") if state.run else _("stopped")
+    badge = "🟢" if state.run else "🔴"
+    warn = "  " + (_("live_warning") if state.mode == "live" else _("dry_run_note"))
+    st.subheader(f"{badge} {running} · {_('mode')}: {state.mode}{warn}")
+    if state.stopped_reason:
+        st.error(_("stopped_reason").format(reason=state.stopped_reason))
+
+
+def _render_data(store: Store, _, lang: str) -> None:
+    """Live data sections (leaderboard, P&L, positions, orders, events)."""
+    st.markdown(f"### {_('leaderboard')}")
+    rows = get_paper_store().leaderboard()
+    if rows:
+        st.dataframe([_leaderboard_row(r, _, lang) for r in rows], width="stretch")
+    else:
+        st.caption(_("no_paper"))
+
+    pnl = store.pnl_today()
+    st.metric(_("pnl_today"), f"{pnl.realized_usd:.2f}")
+
+    st.markdown(f"### {_('positions')}")
+    positions = store.positions()
+    if positions:
+        st.dataframe([p.__dict__ for p in positions], width="stretch")
+    else:
+        st.caption(_("no_positions"))
+
+    st.markdown(f"### {_('recent_orders')}")
+    orders = store.recent_orders(50)
+    if orders:
+        st.dataframe([o.__dict__ for o in orders], width="stretch")
+    else:
+        st.caption(_("no_orders"))
+
+    st.markdown(f"### {_('recent_events')}")
+    events = store.recent_events(50)
+    if events:
+        st.dataframe([e.__dict__ for e in events], width="stretch")
+    else:
+        st.caption(_("no_events"))
+
+
 def render(store: Store) -> None:
     st.set_page_config(page_title="polytrader", layout="wide")
     st.title("polytrader")
@@ -60,68 +105,32 @@ def render(store: Store) -> None:
     def _(key: str) -> str:
         return i18n.t(key, lang)
 
+    # ---- auto-refresh: re-run the live blocks on an interval without a manual reload ----
+    auto = st.sidebar.checkbox(_("auto_refresh"), value=True, key="auto_refresh")
+    every = 3 if auto else None
+
     state = store.get_engine_state()
 
-    # ---- status + mode banner ----
-    mode = state.mode
-    running = _("running") if state.run else _("stopped")
-    badge = "🟢" if state.run else "🔴"
-    warn = "  " + (_("live_warning") if mode == "live" else _("dry_run_note"))
-    st.subheader(f"{badge} {running} · {_('mode')}: {mode}{warn}")
-    if state.stopped_reason:
-        st.error(_("stopped_reason").format(reason=state.stopped_reason))
+    # Status banner (live).
+    st.fragment(run_every=every)(lambda: _render_status(store, _))()
 
     # ---- controls (write commands to the store) ----
-    c1, c2, c3, c4 = st.columns(4)
-    if c1.button(_("start")):
-        store.set_command(run=True)
-        store.set_status(stopped_reason=None)
+    c1, c2, c3 = st.columns(3)
+    # One button toggles run/stop: it shows the action it will perform.
+    if c1.button(_("stop") if state.run else _("start"), key="run_toggle"):
+        store.set_command(run=not state.run)
+        if not state.run:  # we were stopped and are now starting
+            store.set_status(stopped_reason=None)
         st.rerun()
-    if c2.button(_("stop")):
-        store.set_command(run=False)
+    if c2.button(_("toggle_mode")):
+        store.set_command(mode="dry_run" if state.mode == "live" else "live")
         st.rerun()
-    if c3.button(_("toggle_mode")):
-        store.set_command(mode="dry_run" if mode == "live" else "live")
-        st.rerun()
-    if c4.button(_("kill")):
+    if c3.button(_("kill")):
         store.set_command(kill=True)
         st.rerun()
 
-    # ---- strategy leaderboard (paper trading) ----
-    st.markdown(f"### {_('leaderboard')}")
-    rows = get_paper_store().leaderboard()
-    if rows:
-        st.dataframe([_leaderboard_row(r, _, lang) for r in rows], width="stretch")
-    else:
-        st.caption(_("no_paper"))
-
-    # ---- P&L ----
-    pnl = store.pnl_today()
-    st.metric(_("pnl_today"), f"{pnl.realized_usd:.2f}")
-
-    # ---- positions ----
-    st.markdown(f"### {_('positions')}")
-    positions = store.positions()
-    if positions:
-        st.dataframe([p.__dict__ for p in positions], width="stretch")
-    else:
-        st.caption(_("no_positions"))
-
-    # ---- recent orders ----
-    st.markdown(f"### {_('recent_orders')}")
-    orders = store.recent_orders(50)
-    if orders:
-        st.dataframe([o.__dict__ for o in orders], width="stretch")
-    else:
-        st.caption(_("no_orders"))
-
-    # ---- recent events ----
-    st.markdown(f"### {_('recent_events')}")
-    events = store.recent_events(50)
-    if events:
-        st.dataframe([e.__dict__ for e in events], width="stretch")
-    else:
-        st.caption(_("no_events"))
+    # Data sections (live).
+    st.fragment(run_every=every)(lambda: _render_data(store, _, lang))()
 
 
 def main() -> None:  # pragma: no cover - Streamlit entry

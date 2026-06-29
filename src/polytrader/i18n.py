@@ -44,6 +44,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "col_positions": {"en": "positions", "zh": "持仓"},
     "col_win_rate": {"en": "win rate", "zh": "胜率"},
     "col_rejects": {"en": "rejects", "zh": "拒单"},
+    "auto_refresh": {"en": "Auto-refresh", "zh": "自动刷新"},
     "language": {"en": "Language", "zh": "语言"},
 }
 
