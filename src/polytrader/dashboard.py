@@ -60,34 +60,47 @@ def _render_status(store: Store, _) -> None:
         st.error(_("stopped_reason").format(reason=state.stopped_reason))
 
 
+def _filter_orders(orders: list[dict], query: str) -> list[dict]:
+    """Keep orders where any field contains the (case-insensitive) query substring."""
+    q = query.strip().lower()
+    if not q:
+        return orders
+    return [o for o in orders if any(q in str(v).lower() for v in o.values())]
+
+
+def _open_trades_dialog(name: str, label: str, _) -> None:
+    """Modal popup listing one strategy's trades, with a search filter."""
+
+    @st.dialog(f"{_('order_details')} · {label}", width="large")
+    def _dialog() -> None:
+        query = st.text_input(_("search"), key="trade_search")
+        orders = _filter_orders(get_paper_store().orders(name), query)
+        if orders:
+            st.dataframe(orders, width="stretch", hide_index=True)
+        else:
+            st.caption(_("no_orders"))
+
+    _dialog()
+
+
 def _render_leaderboard(_, lang: str) -> None:
-    """Paper Lab leaderboard — always simulated, reads the paper store."""
+    """Paper Lab leaderboard. Clicking a row pops up that strategy's trades."""
     rows = get_paper_store().leaderboard()
-    if rows:
-        st.dataframe([_leaderboard_row(r, _, lang) for r in rows], width="stretch")
-    else:
+    if not rows:
         st.caption(_("no_paper"))
-
-
-def _render_order_details(_, lang: str) -> None:
-    """Drill into one strategy's paper order log, with a free-text search filter."""
-    paper = get_paper_store()
-    names = [r["name"] for r in paper.leaderboard()]
-    if not names:
         return
-    st.markdown(f"#### {_('order_details')}")
-    selected = st.selectbox(
-        _("select_strategy"), names,
-        format_func=lambda n: i18n.strategy_label(n, lang), key="order_strategy",
+    st.caption(_("click_row_hint"))
+    event = st.dataframe(
+        [_leaderboard_row(r, _, lang) for r in rows], width="stretch", hide_index=True,
+        on_select="rerun", selection_mode="single-row", key="lb_select",
     )
-    query = st.text_input(_("search"), key="order_search").strip().lower()
-    orders = paper.orders(selected)
-    if query:
-        orders = [o for o in orders if any(query in str(v).lower() for v in o.values())]
-    if orders:
-        st.dataframe(orders, width="stretch")
-    else:
-        st.caption(_("no_orders"))
+    selected = event.selection.rows if event and event.selection else []
+    if selected:
+        name = rows[selected[0]]["name"]
+        # Open only when the selection changes, so dismissing doesn't immediately reopen.
+        if st.session_state.get("lb_open_for") != name:
+            st.session_state["lb_open_for"] = name
+            _open_trades_dialog(name, i18n.strategy_label(name, lang), _)
 
 
 def _render_live_data(store: Store, _) -> None:
@@ -156,10 +169,11 @@ def render(store: Store) -> None:
     st.fragment(run_every=every)(lambda: _render_live_data(store, _))()
 
     # ===== Paper Lab: all strategies, always simulated =====
+    # Rendered outside the auto-refresh fragment so row-selection + the trades popup
+    # stay stable (an auto-rerunning table would drop the selection every few seconds).
     st.header(_("leaderboard"))
     st.caption(_("paper_lab_note"))
-    st.fragment(run_every=every)(lambda: _render_leaderboard(_, lang))()
-    _render_order_details(_, lang)
+    _render_leaderboard(_, lang)
 
 
 def main() -> None:  # pragma: no cover - Streamlit entry

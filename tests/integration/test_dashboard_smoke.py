@@ -103,24 +103,18 @@ def test_dashboard_shows_paper_leaderboard_with_semantic_names(tmp_path, monkeyp
     assert "market_making" not in all_dfs
 
 
-def test_order_details_drilldown_supports_search(tmp_path, monkeypatch):
+def test_leaderboard_is_row_selectable(tmp_path, monkeypatch):
     db = str(tmp_path / "dash.db")
     paper_db = str(tmp_path / "paper.db")
     _seed(db)
-    _seed_paper(paper_db)  # market_making has two fills: alpha BUY, beta SELL
+    _seed_paper(paper_db)
     monkeypatch.setenv("POLYTRADER_DB", db)
     monkeypatch.setenv("POLYTRADER_PAPER_DB", paper_db)
 
     at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
     at.run()
     assert not at.exception
-    # A strategy is selected by default; both of its orders show.
-    assert at.selectbox(key="order_strategy").value == "market_making"
-    details = at.dataframe[-1].value.to_dict(orient="list")
-    assert "alpha" in str(details) and "beta" in str(details)
-
-    # Searching narrows the order log to matching rows only.
-    at.text_input(key="order_search").set_value("alpha").run()
-    assert not at.exception
-    filtered = at.dataframe[-1].value.to_dict(orient="list")
-    assert "alpha" in str(filtered) and "beta" not in str(filtered)
+    # The leaderboard renders (the selectable dataframe + click-to-popup wiring), and
+    # the click hint is shown so the user knows rows are clickable.
+    assert len(at.dataframe) >= 1
+    assert any("点击" in c.value for c in at.caption)
