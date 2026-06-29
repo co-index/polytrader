@@ -55,11 +55,22 @@ pytest -q                                   # 1. tests must pass first
 
 python -m polytrader.engine                 # 2. engine (starts in dry-run)
 
-streamlit run src/polytrader/dashboard.py   # 3. dashboard (monitor + control)
+python -m polytrader.paper.runner           # 3. paper lab (compare strategies, simulated)
+
+streamlit run src/polytrader/dashboard.py   # 4. dashboard (monitor, control, leaderboard)
 ```
 
 Default risk limits: per-order ≤ $5, total exposure ≤ $50, daily-loss breaker $20.
 Switch to **live** only from the dashboard, after validating in dry-run.
+
+### Paper lab (simulate first, fund the winner later)
+
+`python -m polytrader.paper.runner` runs five strategies (market-making, mean-reversion,
+momentum, complementary-arb, example) side by side against live market data, each with
+its own simulated account and a realistic top-of-book fill model. The dashboard shows a
+bilingual leaderboard so you can compare them before risking real funds. Design:
+[docs/superpowers/specs/2026-06-29-paper-trading-lab-design.md](docs/superpowers/specs/2026-06-29-paper-trading-lab-design.md).
+The fill model is a fair *relative* comparison tool, not a live-fill predictor.
 
 See [specs/001-core-framework/quickstart.md](specs/001-core-framework/quickstart.md) for
 the full validation walkthrough, and [tasks.md](specs/001-core-framework/tasks.md) for

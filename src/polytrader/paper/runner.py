@@ -82,3 +82,44 @@ class PaperRunner:
         while True:
             self.tick()
             time.sleep(self.tick_interval_seconds)
+
+
+def main() -> None:  # pragma: no cover - wiring entry point
+    """Run all five strategies as paper accounts against live market data.
+
+    Reads config.yaml for risk limits + the markets to poll, then writes a leaderboard
+    snapshot each tick to the paper DB the dashboard reads (POLYTRADER_PAPER_DB).
+    """
+    import os
+
+    from ..client import PolymarketClient
+    from ..config import Settings
+    from ..strategy.complementary_arb import ComplementaryArbStrategy
+    from ..strategy.example import ExampleStrategy
+    from ..strategy.market_making import MarketMakingStrategy
+    from ..strategy.mean_reversion import MeanReversionStrategy
+    from ..strategy.momentum import MomentumStrategy
+
+    settings = Settings.load("config.yaml", env=os.environ)
+    client = PolymarketClient(settings)
+
+    store = PaperStore(os.environ.get("POLYTRADER_PAPER_DB", "data/paper.db"))
+    store.init_schema()
+
+    strategies: list[Strategy] = [
+        MarketMakingStrategy(),
+        MeanReversionStrategy(),
+        MomentumStrategy(),
+        ComplementaryArbStrategy(),
+        ExampleStrategy(),
+    ]
+    entries: list[Entry] = []
+    for strat in strategies:
+        broker = PaperBroker(strat.name)
+        entries.append((strat, broker, RiskManager(settings.risk, broker)))
+
+    PaperRunner(client, store, entries, tick_interval_seconds=settings.tick_interval_seconds).run()
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()
