@@ -97,8 +97,9 @@ def _render_leaderboard(_, lang: str) -> None:
     for r in rows:
         cells = st.columns(_LB_WIDTHS, vertical_alignment="center")
         label = i18n.strategy_label(r["name"], lang)
-        if cells[0].button(label, key=f"lb_row_{r['name']}", type="tertiary",
-                           width="stretch"):
+        # No stretch: a tertiary button hugs its label at the column's left edge, so the
+        # name lines up under the "strategy" header instead of being centered/indented.
+        if cells[0].button(label, key=f"lb_row_{r['name']}", type="tertiary"):
             _open_trades_dialog(r["name"], label, _)
         win = (r["wins"] / r["trades"]) if r["trades"] else 0.0
         cells[1].markdown(_pnl_md(r["total_pnl"]))
