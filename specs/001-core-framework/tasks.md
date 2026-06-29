@@ -128,10 +128,10 @@ threshold is crossed; engine auto-stops within one tick with the breaker reason.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T029 [P] Write `README.md` (setup + run, derived from quickstart.md)
-- [ ] T030 [P] Add secrets-leak guard test in `tests/unit/test_no_secrets.py` (no key patterns in event log output; `.env` is gitignored)
-- [ ] T031 Run `quickstart.md` validation end-to-end (tests green, dry-run tick, dashboard render, kill switch, circuit breaker)
-- [ ] T032 Final verification (superpowers verification-before-completion): `pytest -q` fully green and Constitution gates re-checked before any live use
+- [x] T029 [P] Write `README.md` (setup + run, derived from quickstart.md)
+- [x] T030 [P] Add secrets-leak guard test in `tests/unit/test_no_secrets.py` (no key patterns in event log output; `.env` is gitignored)
+- [x] T031 Run `quickstart.md` validation end-to-end (tests green, dry-run tick, dashboard render, kill switch, circuit breaker)
+- [x] T032 Final verification (superpowers verification-before-completion): `pytest -q` fully green and Constitution gates re-checked before any live use
 
 ---
 
