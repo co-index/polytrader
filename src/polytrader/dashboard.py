@@ -15,6 +15,7 @@ import streamlit as st
 
 from polytrader import i18n
 from polytrader.config import Settings
+from polytrader.paper.store import PaperStore
 from polytrader.store import Store
 
 
@@ -23,6 +24,29 @@ def get_store() -> Store:
     store = Store(db_path)
     store.init_schema()
     return store
+
+
+def get_paper_store() -> PaperStore:
+    db_path = os.environ.get("POLYTRADER_PAPER_DB", "data/paper.db")
+    paper = PaperStore(db_path)
+    paper.init_schema()
+    return paper
+
+
+def _leaderboard_row(r: dict, _) -> dict:
+    """Map a PaperStore row to a display row with translated, sorted-friendly columns."""
+    win_rate = (r["wins"] / r["trades"]) if r["trades"] else 0.0
+    return {
+        _("col_strategy"): r["name"],
+        _("col_equity"): round(r["equity"], 2),
+        _("col_total_pnl"): round(r["total_pnl"], 2),
+        _("col_realized"): round(r["realized"], 2),
+        _("col_unrealized"): round(r["unrealized"], 2),
+        _("col_fills"): r["fills"],
+        _("col_positions"): r["positions"],
+        _("col_win_rate"): f"{win_rate:.0%}",
+        _("col_rejects"): r["rejects"],
+    }
 
 
 def render(store: Store) -> None:
@@ -62,6 +86,14 @@ def render(store: Store) -> None:
     if c4.button(_("kill")):
         store.set_command(kill=True)
         st.rerun()
+
+    # ---- strategy leaderboard (paper trading) ----
+    st.markdown(f"### {_('leaderboard')}")
+    rows = get_paper_store().leaderboard()
+    if rows:
+        st.dataframe([_leaderboard_row(r, _) for r in rows], width="stretch")
+    else:
+        st.caption(_("no_paper"))
 
     # ---- P&L ----
     pnl = store.pnl_today()

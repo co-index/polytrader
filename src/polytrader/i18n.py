@@ -32,6 +32,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "no_orders": {"en": "No orders yet.", "zh": "暂无订单。"},
     "recent_events": {"en": "Recent events", "zh": "近期事件"},
     "no_events": {"en": "No events yet.", "zh": "暂无事件。"},
+    "leaderboard": {"en": "Strategy leaderboard (paper)", "zh": "策略排行榜（模拟）"},
+    "no_paper": {"en": "No paper results yet.", "zh": "暂无模拟结果。"},
+    "col_strategy": {"en": "strategy", "zh": "策略"},
+    "col_equity": {"en": "equity", "zh": "权益"},
+    "col_total_pnl": {"en": "total P&L", "zh": "总盈亏"},
+    "col_realized": {"en": "realized", "zh": "已实现"},
+    "col_unrealized": {"en": "unrealized", "zh": "未实现"},
+    "col_fills": {"en": "fills", "zh": "成交"},
+    "col_positions": {"en": "positions", "zh": "持仓"},
+    "col_win_rate": {"en": "win rate", "zh": "胜率"},
+    "col_rejects": {"en": "rejects", "zh": "拒单"},
     "language": {"en": "Language", "zh": "语言"},
 }
 
