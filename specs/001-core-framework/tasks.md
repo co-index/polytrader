@@ -92,13 +92,13 @@ Kill switch cancels all open orders; dashboard still renders with engine stopped
 
 ### Tests for User Story 2 (write first, ensure they FAIL)
 
-- [ ] T021 [P] [US2] Unit test in `tests/unit/test_controls.py`: dashboard `set_command` (run/stop, mode, kill) → engine reads and acts on commands (mocked client); kill triggers `cancel_all`
+- [x] T021 [P] [US2] Unit test in `tests/unit/test_controls.py`: dashboard `set_command` (run/stop, mode, kill) → engine reads and acts on commands (mocked client); kill triggers `cancel_all`
 
 ### Implementation for User Story 2
 
-- [ ] T022 [P] [US2] Implement `src/polytrader/dashboard.py` Streamlit app: render positions, pnl_today, recent orders/fills, engine run-state + mode, recent events from store
-- [ ] T023 [US2] Add dashboard controls in `src/polytrader/dashboard.py` writing commands via `store.set_command` (start/stop, dry_run↔live toggle, kill switch)
-- [ ] T024 [US2] Implement engine command handling in `src/polytrader/engine.py`: each tick read `engine_state`; stop→idle, apply mode switch, kill→`client.cancel_all()` + stop with `stopped_reason` (depends on T018)
+- [x] T022 [P] [US2] Implement `src/polytrader/dashboard.py` Streamlit app: render positions, pnl_today, recent orders/fills, engine run-state + mode, recent events from store
+- [x] T023 [US2] Add dashboard controls in `src/polytrader/dashboard.py` writing commands via `store.set_command` (start/stop, dry_run↔live toggle, kill switch)
+- [x] T024 [US2] Implement engine command handling in `src/polytrader/engine.py`: each tick read `engine_state`; stop→idle, apply mode switch, kill→`client.cancel_all()` + stop with `stopped_reason` (depends on T018)
 
 **Checkpoint**: Operator can monitor and control trading; dashboard survives engine being down (SC-007).
 
