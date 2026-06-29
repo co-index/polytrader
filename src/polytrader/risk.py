@@ -56,3 +56,7 @@ class RiskManager:
             )
 
         return Decision(True, intent, None)
+
+    def daily_loss_breached(self) -> bool:
+        """True when today's realized loss has reached the configured limit."""
+        return self.store.pnl_today().realized_usd <= -self.config.daily_loss_limit_usd

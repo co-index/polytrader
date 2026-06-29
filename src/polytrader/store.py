@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 
@@ -54,6 +55,12 @@ class Event:
 
 
 @dataclass
+class PnL:
+    realized_usd: float
+    unrealized_usd: float = 0.0
+
+
+@dataclass
 class EngineState:
     run: bool
     mode: str
@@ -93,6 +100,10 @@ class Store:
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ts TEXT, level TEXT, category TEXT, message TEXT
+            );
+            CREATE TABLE IF NOT EXISTS pnl (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                day TEXT, realized_usd REAL
             );
             CREATE TABLE IF NOT EXISTS engine_state (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -140,6 +151,12 @@ class Store:
         self._conn.execute(
             "INSERT INTO events (ts, level, category, message) VALUES (?,?,?,?)",
             (ts, level, category, message),
+        )
+        self._conn.commit()
+
+    def record_realized_pnl(self, day: str, amount_usd: float) -> None:
+        self._conn.execute(
+            "INSERT INTO pnl (day, realized_usd) VALUES (?, ?)", (day, amount_usd)
         )
         self._conn.commit()
 
@@ -203,6 +220,13 @@ class Store:
             )
             for r in rows
         ]
+
+    def pnl_today(self) -> PnL:
+        today = date.today().isoformat()
+        row = self._conn.execute(
+            "SELECT COALESCE(SUM(realized_usd), 0) AS r FROM pnl WHERE day = ?", (today,)
+        ).fetchone()
+        return PnL(realized_usd=float(row["r"]))
 
     def recent_events(self, n: int) -> list[Event]:
         rows = self._conn.execute(

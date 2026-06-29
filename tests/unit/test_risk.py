@@ -4,6 +4,8 @@ Constitution IV: the risk gate is the component that protects funds; it must be 
 most thoroughly tested. Tests use a real in-memory Store (no mocks).
 """
 
+from datetime import date
+
 import pytest
 
 from polytrader.config import RiskConfig
@@ -27,6 +29,10 @@ def _risk(store, **overrides):
         market_whitelist=overrides.get("market_whitelist", ["m1"]),
     )
     return RiskManager(cfg, store)
+
+
+def _today():
+    return date.today().isoformat()
 
 
 def _intent(market_id="m1", size=1.0, price=0.4, side="BUY"):
@@ -76,3 +82,16 @@ def test_per_order_cap_checked_before_exposure(store):
     d = rm.check(_intent(size=200, price=0.5))
     assert d.approved is False
     assert "per-order" in d.reason.lower()
+
+
+def test_daily_loss_not_breached_when_under_limit(store):
+    rm = _risk(store, daily_loss_limit_usd=20.0)
+    store.record_realized_pnl(_today(), -10.0)
+    assert rm.daily_loss_breached() is False
+
+
+def test_daily_loss_breached_when_loss_reaches_limit(store):
+    rm = _risk(store, daily_loss_limit_usd=20.0)
+    store.record_realized_pnl(_today(), -15.0)
+    store.record_realized_pnl(_today(), -6.0)  # total -21 <= -20
+    assert rm.daily_loss_breached() is True

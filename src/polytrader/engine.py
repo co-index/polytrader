@@ -61,6 +61,13 @@ class Engine:
         if not state.run:
             return
 
+        # Daily-loss circuit breaker: stop autonomously before trading any further.
+        if self.risk.daily_loss_breached():
+            self.store.set_command(run=False)
+            self.store.set_status(stopped_reason="daily-loss circuit breaker")
+            self.store.log_event("warn", "risk", "daily-loss circuit breaker tripped; stopped")
+            return
+
         # Strategy failures are isolated — a bad tick must never crash the loop.
         try:
             intents = self.strategy.on_tick(self.client.get_markets(), self._context())

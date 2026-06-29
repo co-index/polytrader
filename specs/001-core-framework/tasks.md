@@ -114,13 +114,13 @@ threshold is crossed; engine auto-stops within one tick with the breaker reason.
 
 ### Tests for User Story 3 (write first, ensure they FAIL)
 
-- [ ] T025 [P] [US3] Add failing tests in `tests/unit/test_risk.py`: realized daily loss ≥ limit → `daily_loss_breached()` True; below → False
-- [ ] T026 [P] [US3] Integration test in `tests/integration/test_circuit_breaker.py`: losing fills cross threshold → engine auto-stops within one tick, `stopped_reason="daily-loss circuit breaker"`
+- [x] T025 [P] [US3] Add failing tests in `tests/unit/test_risk.py`: realized daily loss ≥ limit → `daily_loss_breached()` True; below → False
+- [x] T026 [P] [US3] Integration test in `tests/integration/test_circuit_breaker.py`: losing fills cross threshold → engine auto-stops within one tick, `stopped_reason="daily-loss circuit breaker"`
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Implement realized-P&L-per-day tracking from fills in `src/polytrader/store.py` (`pnl_today`) and `src/polytrader/risk.py`
-- [ ] T028 [US3] Implement `RiskManager.daily_loss_breached()` and engine auto-stop wiring in `src/polytrader/engine.py` (set stop + `stopped_reason` within one tick) to pass T025/T026
+- [x] T027 [US3] Implement realized-P&L-per-day tracking from fills in `src/polytrader/store.py` (`pnl_today`) and `src/polytrader/risk.py`
+- [x] T028 [US3] Implement `RiskManager.daily_loss_breached()` and engine auto-stop wiring in `src/polytrader/engine.py` (set stop + `stopped_reason` within one tick) to pass T025/T026
 
 **Checkpoint**: All three stories independently functional; unattended small-money trading is loss-capped.
 
