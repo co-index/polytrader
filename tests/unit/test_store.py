@@ -1,6 +1,6 @@
 """Unit tests for polytrader.store — SQLite persistence + engine control channel."""
 
-from polytrader.store import Event, Order, Position, Store
+from polytrader.store import Order, Position, Store
 
 
 def _store(tmp_path) -> Store:

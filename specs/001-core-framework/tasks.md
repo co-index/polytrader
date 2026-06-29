@@ -51,8 +51,8 @@ before any live path exists (Constitution IV).
 - [x] T011 Implement `src/polytrader/strategy/example.py` bundled example strategy to pass T010
 - [x] T012 [P] Write exhaustive failing unit tests for the risk gate caps in `tests/unit/test_risk.py` (per-order cap reject, exposure cap reject, non-whitelisted reject with reason, in-limit approve) — Constitution IV
 - [x] T013 Implement `src/polytrader/risk.py` `RiskManager.check()` (per-order cap, total exposure cap, market whitelist; reads exposure from store; sets specific reason on reject) to pass T012
-- [ ] T014 [P] Write failing tests in `tests/unit/test_client.py` (guard: only `client.py` imports `py_clob_client`; mocked-SDK tests for get_markets/place_order/cancel/cancel_all/get_positions/get_balance + rate-limit backoff)
-- [ ] T015 Implement `src/polytrader/client.py` `PolymarketClient` — sole `py_clob_client` chokepoint, mockable interface, rate-limit throttling/backoff — to pass T014
+- [x] T014 [P] Write failing tests in `tests/unit/test_client.py` (guard: only `client.py` imports `py_clob_client`; mocked-SDK tests for get_markets/place_order/cancel/cancel_all/get_positions/get_balance + rate-limit backoff)
+- [x] T015 Implement `src/polytrader/client.py` `PolymarketClient` — sole `py_clob_client` chokepoint, mockable interface, rate-limit throttling/backoff — to pass T014
 
 **Checkpoint**: config, store, strategy base + example, risk gate (caps), and client are tested and ready.
 

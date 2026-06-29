@@ -158,11 +158,14 @@ class Store:
                     kill: bool | None = None) -> None:
         sets, params = [], []
         if run is not None:
-            sets.append("run = ?"); params.append(1 if run else 0)
+            sets.append("run = ?")
+            params.append(1 if run else 0)
         if mode is not None:
-            sets.append("mode = ?"); params.append(mode)
+            sets.append("mode = ?")
+            params.append(mode)
         if kill is not None:
-            sets.append("kill = ?"); params.append(1 if kill else 0)
+            sets.append("kill = ?")
+            params.append(1 if kill else 0)
         if not sets:
             return
         self._conn.execute(f"UPDATE engine_state SET {', '.join(sets)} WHERE id = 1", params)
