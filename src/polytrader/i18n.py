@@ -54,6 +54,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "close": {"en": "✕ Close", "zh": "✕ 关闭"},
     "refresh": {"en": "🔄 Refresh", "zh": "🔄 刷新"},
     "search": {"en": "Search (token / side / status …)", "zh": "搜索（token / 方向 / 状态 …）"},
+    "ord_time": {"en": "time", "zh": "时间"},
+    "ord_token": {"en": "token", "zh": "token"},
+    "ord_side": {"en": "side", "zh": "方向"},
+    "ord_size": {"en": "size", "zh": "数量"},
+    "ord_price": {"en": "price", "zh": "价格"},
+    "ord_status": {"en": "status", "zh": "状态"},
+    "st_filled": {"en": "filled", "zh": "成交"},
+    "st_resting": {"en": "resting", "zh": "挂单"},
+    "st_rejected": {"en": "rejected", "zh": "拒单"},
     "paper_lab_note": {
         "en": "Always simulated, independent of the engine's live/dry-run mode. "
               "Real trades appear under Live engine above.",

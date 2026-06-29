@@ -65,8 +65,9 @@ class PaperRunner:
             for intent in intents:
                 if not isinstance(intent, OrderIntent):
                     continue
-                if not risk.check(intent).approved:
-                    broker.note_reject()
+                decision = risk.check(intent)
+                if not decision.approved:
+                    broker.record_rejected(intent, ts, decision.reason or "")
                     continue
                 market = market_by_token.get(intent.token_id)
                 if market is not None:

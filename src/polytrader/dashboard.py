@@ -52,16 +52,33 @@ def _filter_orders(orders: list[dict], query: str) -> list[dict]:
     return [o for o in orders if any(q in str(v).lower() for v in o.values())]
 
 
+_STATUS_KEY = {"filled": "st_filled", "resting": "st_resting", "rejected": "st_rejected"}
+
+
+def _display_order(o: dict, _) -> dict:
+    """Localize an order row's columns and status for display."""
+    return {
+        _("ord_time"): o["ts"],
+        _("ord_token"): o["token_id"],
+        _("ord_side"): o["side"],
+        _("ord_size"): o["size"],
+        _("ord_price"): o["price"],
+        _("ord_status"): _(_STATUS_KEY.get(o["status"], o["status"])),
+    }
+
+
 def _open_trades_dialog(name: str, label: str, _) -> None:
-    """Modal popup listing one strategy's trades, with a search filter. The leaderboard
-    is kept out of auto-refresh so this dialog isn't closed by a periodic rerun."""
+    """Modal popup listing one strategy's orders (filled / resting / rejected), newest
+    first, with a search filter. The leaderboard is kept out of auto-refresh so this
+    dialog isn't closed by a periodic rerun."""
 
     @st.dialog(f"{_('order_details')} · {label}", width="large")
     def _dialog() -> None:
         query = st.text_input(_("search"), key="trade_search")
-        orders = _filter_orders(get_paper_store().orders(name), query)
-        if orders:
-            st.dataframe(orders, width="stretch", hide_index=True)
+        rows = [_display_order(o, _) for o in reversed(get_paper_store().orders(name))]
+        rows = _filter_orders(rows, query)
+        if rows:
+            st.dataframe(rows, width="stretch", hide_index=True)
         else:
             st.caption(_("no_orders"))
 

@@ -91,7 +91,7 @@ def test_summary_has_all_leaderboard_keys():
         assert k in s
 
 
-def test_records_each_fill_in_the_order_log():
+def test_records_a_filled_order_in_the_log():
     b = PaperBroker("s", bankroll=1000.0)
     b.execute(_buy(0.40), _mkt(best_ask=0.40), ts="2026-06-29T01:00:00")
     log = b.orders()
@@ -103,8 +103,22 @@ def test_records_each_fill_in_the_order_log():
     assert o["status"] == "filled"
 
 
-def test_unfilled_intent_is_not_logged():
+def test_logs_an_unfilled_order_as_resting():
     b = PaperBroker("s", bankroll=1000.0)
-    # BUY below the ask is not marketable -> no fill, no order record.
+    # BUY below the ask is placed but not marketable -> logged as a resting order.
     b.execute(_buy(0.39), _mkt(best_ask=0.42))
-    assert b.orders() == []
+    log = b.orders()
+    assert len(log) == 1
+    assert log[0]["status"] == "resting"
+    assert log[0]["price"] == 0.39
+    # ...and it did not move cash or positions.
+    assert b.cash == 1000.0 and b.positions() == []
+
+
+def test_logs_a_rejected_order_and_counts_it():
+    b = PaperBroker("s", bankroll=1000.0)
+    b.record_rejected(_buy(0.39), ts="2026-06-29T02:00:00", reason="cap")
+    log = b.orders()
+    assert len(log) == 1
+    assert log[0]["status"] == "rejected"
+    assert b.summary()["rejects"] == 1

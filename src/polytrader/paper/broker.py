@@ -8,6 +8,7 @@ Fills are decided by the pure `try_fill` model; the risk gate runs upstream in t
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field
 
 from ..store import PnL, Position
@@ -37,25 +38,36 @@ class PaperBroker:
     def __post_init__(self) -> None:
         self.cash = self.bankroll
         self._pos: dict[str, _Pos] = {}
-        self._orders: list[dict] = []
+        # Every order the strategy places is logged (filled / resting / rejected); capped
+        # so a re-quoting strategy doesn't grow it without bound.
+        self._orders: deque[dict] = deque(maxlen=400)
 
     # ---- order handling (gate already passed upstream) ----
     def execute(self, intent: OrderIntent, market: MarketState, ts: str = "") -> PaperFill | None:
         fill = try_fill(intent, market)
         if fill is None:
+            # Placed but not marketable this tick: a resting quote.
+            self._log(ts, intent.token_id, intent.side, intent.size, intent.price, "resting")
             return None
         delta = fill.size if fill.side == "BUY" else -fill.size
         self._apply(intent.token_id, intent.market_id, delta, fill.price)
         self.cash += -delta * fill.price
         self.fills += 1
-        self._orders.append({
-            "ts": ts, "token_id": fill.token_id, "side": fill.side,
-            "size": fill.size, "price": fill.price, "status": "filled",
-        })
+        self._log(ts, fill.token_id, fill.side, fill.size, fill.price, "filled")
         return fill
 
+    def record_rejected(self, intent: OrderIntent, ts: str = "", reason: str = "") -> None:
+        """Log a risk-rejected order and count it."""
+        self.rejects += 1
+        self._log(ts, intent.token_id, intent.side, intent.size, intent.price, "rejected")
+
+    def _log(self, ts: str, token_id: str, side: str, size: float, price: float,
+             status: str) -> None:
+        self._orders.append({"ts": ts, "token_id": token_id, "side": side,
+                             "size": size, "price": price, "status": status})
+
     def orders(self) -> list[dict]:
-        """The per-fill order log (executed trades, newest last)."""
+        """Every order placed (filled / resting / rejected), oldest first, capped."""
         return list(self._orders)
 
     def _apply(self, token_id: str, market_id: str, delta: float, price: float) -> None:
@@ -93,9 +105,6 @@ class PaperBroker:
 
     def _equity(self) -> float:
         return self.cash + sum(p.size * p.last_mid for p in self._pos.values() if p.size)
-
-    def note_reject(self) -> None:
-        self.rejects += 1
 
     # ---- store-shaped reads (so RiskManager accepts the broker) ----
     def positions(self) -> list[Position]:
