@@ -33,22 +33,6 @@ def get_paper_store() -> PaperStore:
     return paper
 
 
-def _leaderboard_row(r: dict, _, lang: str) -> dict:
-    """Map a PaperStore row to a display row with translated, sorted-friendly columns."""
-    win_rate = (r["wins"] / r["trades"]) if r["trades"] else 0.0
-    return {
-        _("col_strategy"): i18n.strategy_label(r["name"], lang),
-        _("col_equity"): round(r["equity"], 2),
-        _("col_total_pnl"): round(r["total_pnl"], 2),
-        _("col_realized"): round(r["realized"], 2),
-        _("col_unrealized"): round(r["unrealized"], 2),
-        _("col_fills"): r["fills"],
-        _("col_positions"): r["positions"],
-        _("col_win_rate"): f"{win_rate:.0%}",
-        _("col_rejects"): r["rejects"],
-    }
-
-
 def _render_status(store: Store, _) -> None:
     """Live status banner — re-reads the store so auto-refresh shows the truth."""
     state = store.get_engine_state()
@@ -83,24 +67,48 @@ def _open_trades_dialog(name: str, label: str, _) -> None:
     _dialog()
 
 
+_LB_COLS = ("col_strategy", "col_total_pnl", "col_equity", "col_realized",
+            "col_unrealized", "col_fills", "col_positions", "col_win_rate", "col_rejects")
+_LB_WIDTHS = [2.2, 1, 1, 1, 1, 0.8, 0.8, 0.8, 0.8]
+
+
+def _pnl_md(value: float) -> str:
+    """Color the P&L: green when up, red when down, plain at zero."""
+    if value > 0:
+        return f":green[+{value:.2f}]"
+    if value < 0:
+        return f":red[{value:.2f}]"
+    return f"{value:.2f}"
+
+
 def _render_leaderboard(_, lang: str) -> None:
-    """Paper Lab leaderboard. Clicking a row pops up that strategy's trades."""
+    """Paper Lab leaderboard. Each strategy name is a link-style button; clicking it
+    pops up that strategy's trades — no checkbox column, the row itself is the action."""
     rows = get_paper_store().leaderboard()
     if not rows:
         st.caption(_("no_paper"))
         return
     st.caption(_("click_row_hint"))
-    event = st.dataframe(
-        [_leaderboard_row(r, _, lang) for r in rows], width="stretch", hide_index=True,
-        on_select="rerun", selection_mode="single-row", key="lb_select",
-    )
-    selected = event.selection.rows if event and event.selection else []
-    if selected:
-        name = rows[selected[0]]["name"]
-        # Open only when the selection changes, so dismissing doesn't immediately reopen.
-        if st.session_state.get("lb_open_for") != name:
-            st.session_state["lb_open_for"] = name
-            _open_trades_dialog(name, i18n.strategy_label(name, lang), _)
+
+    header = st.columns(_LB_WIDTHS, vertical_alignment="center")
+    for col, key in zip(header, _LB_COLS, strict=True):
+        col.markdown(f"**{_(key)}**")
+
+    for r in rows:
+        cells = st.columns(_LB_WIDTHS, vertical_alignment="center")
+        label = i18n.strategy_label(r["name"], lang)
+        if cells[0].button(label, key=f"lb_row_{r['name']}", type="tertiary",
+                           width="stretch"):
+            _open_trades_dialog(r["name"], label, _)
+        win = (r["wins"] / r["trades"]) if r["trades"] else 0.0
+        cells[1].markdown(_pnl_md(r["total_pnl"]))
+        cells[2].write(f"{r['equity']:.2f}")
+        cells[3].write(f"{r['realized']:.2f}")
+        cells[4].write(f"{r['unrealized']:.2f}")
+        cells[5].write(r["fills"])
+        cells[6].write(r["positions"])
+        cells[7].write(f"{win:.0%}")
+        cells[8].write(r["rejects"])
 
 
 def _render_live_data(store: Store, _) -> None:

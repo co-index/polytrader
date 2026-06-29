@@ -96,25 +96,28 @@ def test_dashboard_shows_paper_leaderboard_with_semantic_names(tmp_path, monkeyp
     headings = [h.value for h in at.header] + [m.value for m in at.markdown]
     assert any("排行榜" in h for h in headings)
     assert any("模拟数据" in c.value for c in at.caption)
-    # Semantic strategy name shown (not the raw "market_making" identifier),
-    # in whichever dataframe is the leaderboard.
-    all_dfs = " ".join(str(d.value.to_dict(orient="list")) for d in at.dataframe)
-    assert "做市/价差捕获" in all_dfs
-    assert "market_making" not in all_dfs
+    # The strategy name is a clickable (link-style) button, not a raw identifier.
+    labels = [b.label for b in at.button]
+    assert "做市/价差捕获" in labels
+    assert "market_making" not in labels
 
 
-def test_leaderboard_is_row_selectable(tmp_path, monkeypatch):
+def test_clicking_a_strategy_row_pops_up_its_trades_with_search(tmp_path, monkeypatch):
     db = str(tmp_path / "dash.db")
     paper_db = str(tmp_path / "paper.db")
     _seed(db)
-    _seed_paper(paper_db)
+    _seed_paper(paper_db)  # market_making has two fills: alpha BUY, beta SELL
     monkeypatch.setenv("POLYTRADER_DB", db)
     monkeypatch.setenv("POLYTRADER_PAPER_DB", paper_db)
 
     at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
     at.run()
     assert not at.exception
-    # The leaderboard renders (the selectable dataframe + click-to-popup wiring), and
-    # the click hint is shown so the user knows rows are clickable.
-    assert len(at.dataframe) >= 1
-    assert any("点击" in c.value for c in at.caption)
+    # Click the strategy row -> its trades popup opens, showing that strategy's trades
+    # and a search box. (In-popup filtering is covered by the _filter_orders unit test;
+    # AppTest can't drive a second interaction inside an st.dialog.)
+    at.button(key="lb_row_market_making").click().run()
+    assert not at.exception
+    trades = " ".join(str(d.value.to_dict(orient="list")) for d in at.dataframe)
+    assert "alpha" in trades and "beta" in trades
+    assert at.text_input(key="trade_search") is not None
