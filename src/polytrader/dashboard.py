@@ -99,7 +99,9 @@ def _localize_ts(ts_iso: str, tz_name: str | None) -> str:
 
 
 def _display_order(o: dict, _, tz_name: str | None) -> dict:
-    """Localize an order row's columns, status, and time for display."""
+    """Localize an order row's columns, status, and time for display. P&L only applies to
+    fills (realized on close); resting/rejected orders show '—'."""
+    pnl = round(o.get("pnl", 0.0), 2) if o.get("status") == "filled" else "—"
     return {
         _("ord_time"): _localize_ts(o["ts"], tz_name),
         _("ord_token"): o["token_id"],
@@ -107,7 +109,7 @@ def _display_order(o: dict, _, tz_name: str | None) -> dict:
         _("ord_size"): o["size"],
         _("ord_price"): o["price"],
         _("ord_status"): _(_STATUS_KEY.get(o["status"], o["status"])),
-        _("ord_pnl"): round(o.get("pnl", 0.0), 2),
+        _("ord_pnl"): pnl,
     }
 
 
