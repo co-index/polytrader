@@ -17,6 +17,14 @@ def test_write_then_read_sorted_by_total_pnl_desc():
     assert names == ["b", "c", "a"]
 
 
+def test_last_update_returns_snapshot_ts_or_none():
+    s = PaperStore(":memory:")
+    s.init_schema()
+    assert s.last_update() is None
+    s.write_leaderboard([_row("a", 1.0)], ts="2026-06-30T12:00:00")
+    assert s.last_update() == "2026-06-30T12:00:00"
+
+
 def test_second_write_replaces_snapshot():
     s = PaperStore(":memory:")
     s.init_schema()

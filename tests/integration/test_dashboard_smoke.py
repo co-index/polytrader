@@ -98,6 +98,35 @@ def test_dashboard_switches_to_english(tmp_path, monkeypatch):
     assert any("RUNNING" in s.value for s in at.subheader)
 
 
+def test_paper_lab_heartbeat_reflects_runner(tmp_path, monkeypatch):
+    db = str(tmp_path / "dash.db")
+    paper_db = str(tmp_path / "paper.db")
+    _seed(db)
+    monkeypatch.setenv("POLYTRADER_DB", db)
+    monkeypatch.setenv("POLYTRADER_PAPER_DB", paper_db)
+
+    # Fresh snapshot -> Paper Lab shown as running.
+    ps = PaperStore(paper_db)
+    ps.init_schema()
+    ps.write_leaderboard([{
+        "name": "momentum", "equity": 1000.0, "total_pnl": 0.0, "realized": 0.0,
+        "unrealized": 0.0, "fills": 0, "positions": 0, "wins": 0, "trades": 0, "rejects": 0,
+    }], ts=datetime.now(UTC).isoformat())
+
+    at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
+    at.run()
+    assert not at.exception
+    assert any("运行中" in m.value for m in at.markdown)
+
+    # Stale snapshot -> Paper Lab shown as idle.
+    ps.write_leaderboard([{
+        "name": "momentum", "equity": 1000.0, "total_pnl": 0.0, "realized": 0.0,
+        "unrealized": 0.0, "fills": 0, "positions": 0, "wins": 0, "trades": 0, "rejects": 0,
+    }], ts="2026-06-30T00:00:00")
+    at.run()
+    assert any("未运行" in m.value for m in at.markdown)
+
+
 def test_dashboard_shows_paper_leaderboard_with_semantic_names(tmp_path, monkeypatch):
     db = str(tmp_path / "dash.db")
     paper_db = str(tmp_path / "paper.db")

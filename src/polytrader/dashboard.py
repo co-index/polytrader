@@ -92,13 +92,30 @@ def _display_order(o: dict, _) -> dict:
     }
 
 
+def _render_paper_status(_) -> None:
+    """Live Paper Lab heartbeat: green + 'updated Ns ago' when the runner is writing,
+    red when no fresh snapshot. Auto-refreshed so it ticks while a runner is alive."""
+    last = get_paper_store().last_update()
+    now = datetime.now(UTC)
+    if last and _heartbeat_ok(last, now, _HEARTBEAT_MAX_AGE_S):
+        try:
+            age = max(0, int((now - datetime.fromisoformat(last)).total_seconds()))
+        except ValueError:
+            age = 0
+        st.markdown(f"**{_('paper_running')}** · {_('updated_ago').format(s=age)}")
+    else:
+        st.markdown(f"**{_('paper_idle')}**")
+
+
 def _open_trades_dialog(name: str, label: str, _) -> None:
     """Modal popup listing one strategy's orders (filled / resting / rejected), newest
-    first, with a search filter. The leaderboard is kept out of auto-refresh so this
-    dialog isn't closed by a periodic rerun."""
+    first, with a search filter and a Close button."""
 
     @st.dialog(f"{_('order_details')} · {label}", width="large")
     def _dialog() -> None:
+        if st.button(_("close"), key="close_trades"):
+            st.session_state["trades_for"] = None
+            st.rerun()
         query = st.text_input(_("search"), key="trade_search")
         rows = [_display_order(o, _) for o in reversed(get_paper_store().orders(name))]
         rows = _filter_orders(rows, query)
@@ -146,7 +163,7 @@ def _render_leaderboard(_, lang: str) -> None:
         # No stretch: a tertiary button hugs its label at the column's left edge, so the
         # name lines up under the "strategy" header instead of being centered/indented.
         if cells[0].button(label, key=f"lb_row_{r['name']}", type="tertiary"):
-            _open_trades_dialog(r["name"], label, _)
+            st.session_state["trades_for"] = r["name"]
         win = (r["wins"] / r["trades"]) if r["trades"] else 0.0
         cells[1].markdown(_pnl_md(r["total_pnl"]))
         cells[2].write(f"{r['equity']:.2f}")
@@ -156,6 +173,11 @@ def _render_leaderboard(_, lang: str) -> None:
         cells[6].write(r["positions"])
         cells[7].write(f"{win:.0%}")
         cells[8].write(r["rejects"])
+
+    # Open the trades modal for the selected strategy (app-level, survives reruns).
+    selected = st.session_state.get("trades_for")
+    if selected:
+        _open_trades_dialog(selected, i18n.strategy_label(selected, lang), _)
 
 
 def _render_live_data(store: Store, _) -> None:
@@ -224,9 +246,12 @@ def render(store: Store) -> None:
     st.fragment(run_every=every)(lambda: _render_live_data(store, _))()
 
     # ===== Paper Lab: all strategies, always simulated =====
-    # NOT auto-refreshed: a periodic rerun would close the trades modal. Use the Refresh
-    # button to pull the latest snapshot. (The live-engine blocks above still auto-update.)
     st.header(_("leaderboard"))
+    # Heartbeat line auto-refreshes so 'running' is real-time; paused while the trades
+    # modal is open so the periodic rerun doesn't close it. The leaderboard itself uses
+    # the Refresh button (a re-shuffling table would fight row clicks).
+    paper_every = None if st.session_state.get("trades_for") else every
+    st.fragment(run_every=paper_every)(lambda: _render_paper_status(_))()
     st.caption(_("paper_lab_note"))
     _render_leaderboard(_, lang)
 

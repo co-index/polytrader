@@ -61,6 +61,11 @@ class PaperStore:
         ).fetchall()
         return [{k: r[k] for k in _COLS} for r in rows]
 
+    def last_update(self) -> str | None:
+        """Timestamp of the latest leaderboard snapshot (a runner heartbeat), or None."""
+        row = self._conn.execute("SELECT MAX(ts) AS ts FROM paper_leaderboard").fetchone()
+        return row["ts"] if row and row["ts"] else None
+
     def write_orders(self, strategy: str, rows: list[dict]) -> None:
         """Replace the stored order log for one strategy (leaves others intact)."""
         c = self._conn

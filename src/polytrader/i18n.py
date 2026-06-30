@@ -48,6 +48,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "col_rejects": {"en": "rejects", "zh": "拒单"},
     "auto_refresh": {"en": "Auto-refresh", "zh": "自动刷新"},
     "live_engine": {"en": "Live engine", "zh": "实盘引擎"},
+    "paper_running": {"en": "🟢 Paper Lab running", "zh": "🟢 Paper Lab 运行中"},
+    "paper_idle": {"en": "🔴 Paper Lab idle (no runner)", "zh": "🔴 Paper Lab 未运行（无 runner）"},
+    "updated_ago": {"en": "updated {s}s ago", "zh": "更新于 {s} 秒前"},
     "order_details": {"en": "Order details", "zh": "订单详情"},
     "click_row_hint": {
         "en": "Click a row to see that strategy's trades.",
