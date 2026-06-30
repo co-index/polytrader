@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 
 from ..store import PnL, Position
 from ..strategy.base import MarketState, OrderIntent
-from .fills import PaperFill, try_fill
+from .fills import PaperFill, is_marketable
 
 
 @dataclass
@@ -41,20 +41,37 @@ class PaperBroker:
         # Every order the strategy places is logged (filled / resting / rejected); capped
         # so a re-quoting strategy doesn't grow it without bound.
         self._orders: deque[dict] = deque(maxlen=400)
+        # Resting (non-marketable) orders from the current tick, checked for maker fills
+        # against the next tick's book, then cancel-replaced.
+        self._resting: list[tuple[str, str, str, float, float]] = []
 
     # ---- order handling (gate already passed upstream) ----
     def execute(self, intent: OrderIntent, market: MarketState, ts: str = "") -> PaperFill | None:
-        fill = try_fill(intent, market)
-        if fill is None:
-            # Placed but not marketable this tick: a resting quote.
+        """Taker path: fill now if the order crosses the book; otherwise let it rest."""
+        if not is_marketable(intent.side, intent.price, market):
+            self._resting.append((intent.token_id, intent.market_id, intent.side,
+                                  intent.size, intent.price))
             self._log(ts, intent.token_id, intent.side, intent.size, intent.price, "resting")
             return None
-        delta = fill.size if fill.side == "BUY" else -fill.size
-        self._apply(intent.token_id, intent.market_id, delta, fill.price)
-        self.cash += -delta * fill.price
+        self._fill(intent.token_id, intent.market_id, intent.side, intent.size, intent.price, ts)
+        return PaperFill(intent.token_id, intent.market_id, intent.side, intent.size, intent.price)
+
+    def settle_resting(self, market_by_token: dict[str, MarketState], ts: str = "") -> None:
+        """Maker path: fill resting orders the new tick's price moved through, then cancel
+        the rest (cancel-replace — strategies re-quote every tick)."""
+        for token_id, market_id, side, size, price in self._resting:
+            m = market_by_token.get(token_id)
+            if m is not None and is_marketable(side, price, m):
+                self._fill(token_id, market_id, side, size, price, ts)
+        self._resting = []
+
+    def _fill(self, token_id: str, market_id: str, side: str, size: float, price: float,
+              ts: str) -> None:
+        delta = size if side == "BUY" else -size
+        self._apply(token_id, market_id, delta, price)
+        self.cash += -delta * price
         self.fills += 1
-        self._log(ts, fill.token_id, fill.side, fill.size, fill.price, "filled")
-        return fill
+        self._log(ts, token_id, side, size, price, "filled")
 
     def record_rejected(self, intent: OrderIntent, ts: str = "", reason: str = "") -> None:
         """Log a risk-rejected order and count it."""

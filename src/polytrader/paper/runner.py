@@ -56,6 +56,8 @@ class PaperRunner:
         ts = self.tick_ts()
 
         for strategy, broker, risk in self.entries:
+            # Maker fills first: did this tick's price move through last tick's resting quotes?
+            broker.settle_resting(market_by_token, ts)
             try:
                 intents = strategy.on_tick(snapshot, self._context(broker, risk))
             except Exception as e:  # noqa: BLE001 - isolate a bad strategy

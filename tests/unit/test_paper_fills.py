@@ -1,6 +1,6 @@
 """Paper fill model: marketable-only fills against a top-of-book snapshot."""
 
-from polytrader.paper.fills import PaperFill, try_fill
+from polytrader.paper.fills import PaperFill, is_marketable, try_fill
 from polytrader.strategy.base import MarketState, OrderIntent
 
 
@@ -36,3 +36,11 @@ def test_sell_does_not_fill_above_bid():
 def test_no_fill_on_empty_book():
     assert try_fill(_intent("BUY", 0.42), _mkt(best_ask=0.0)) is None
     assert try_fill(_intent("SELL", 0.40), _mkt(best_bid=0.0)) is None
+
+
+def test_is_marketable_buy_and_sell():
+    assert is_marketable("BUY", 0.42, _mkt(best_ask=0.42)) is True
+    assert is_marketable("BUY", 0.41, _mkt(best_ask=0.42)) is False
+    assert is_marketable("SELL", 0.40, _mkt(best_bid=0.40)) is True
+    assert is_marketable("SELL", 0.41, _mkt(best_bid=0.40)) is False
+    assert is_marketable("BUY", 0.42, _mkt(best_ask=0.0)) is False

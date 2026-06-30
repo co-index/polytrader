@@ -28,13 +28,19 @@ class PaperFill:
     price: float
 
 
+def is_marketable(side: str, price: float, market: MarketState) -> bool:
+    """True if an order at this price would cross the current book (BUY ≥ ask / SELL ≤ bid).
+
+    Used both for taker fills (a new order crossing now) and maker fills (a resting order
+    that a later tick's price has moved through)."""
+    if side == "BUY":
+        return market.best_ask > 0 and price >= market.best_ask
+    return market.best_bid > 0 and price <= market.best_bid
+
+
 def try_fill(intent: OrderIntent, market: MarketState) -> PaperFill | None:
     """Return a fill if the intent is marketable against the snapshot, else None."""
-    if intent.side == "BUY":
-        marketable = market.best_ask > 0 and intent.price >= market.best_ask
-    else:  # SELL
-        marketable = market.best_bid > 0 and intent.price <= market.best_bid
-    if not marketable:
+    if not is_marketable(intent.side, intent.price, market):
         return None
     return PaperFill(
         token_id=intent.token_id,

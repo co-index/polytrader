@@ -7,7 +7,7 @@ from polytrader.paper.broker import PaperBroker
 from polytrader.paper.runner import PaperRunner
 from polytrader.paper.store import PaperStore
 from polytrader.risk import RiskManager
-from polytrader.strategy.base import MarketState
+from polytrader.strategy.base import MarketState, OrderIntent
 from polytrader.strategy.example import ExampleStrategy
 from polytrader.strategy.market_making import MarketMakingStrategy
 
@@ -65,6 +65,33 @@ def test_rejected_intents_are_counted_not_executed():
     row = store.leaderboard()[0]
     assert row["fills"] == 0
     assert row["rejects"] >= 1
+
+
+def test_passive_order_gets_a_maker_fill_when_price_moves():
+    # A passive strategy that quotes a BUY below the ask (never marketable on placement).
+    class PassiveBuy:
+        name = "passive"
+
+        def on_tick(self, markets, context):
+            m = markets[0]
+            return [OrderIntent(market_id=m.market_id, token_id=m.token_id,
+                                side="BUY", size=1.0, price=0.40)]
+
+    broker = PaperBroker("passive", bankroll=1000.0)
+    risk = RiskManager(_risk(), broker)
+    client = MagicMock()
+    client.get_markets.side_effect = [
+        [MarketState("m1", "t1", "Q?", best_bid=0.39, best_ask=0.45, midpoint=0.42, timestamp="a")],
+        [MarketState("m1", "t1", "Q?", best_bid=0.38, best_ask=0.40, midpoint=0.39, timestamp="b")],
+    ]
+    store = PaperStore(":memory:")
+    store.init_schema()
+    runner = PaperRunner(client, store, [(PassiveBuy(), broker, risk)], tick_ts=lambda: "t")
+
+    runner.tick()                       # tick 1: order rests, no fill
+    assert broker.summary()["fills"] == 0
+    runner.tick()                       # tick 2: ask fell through 0.40 -> maker fill
+    assert broker.summary()["fills"] >= 1
 
 
 def test_a_raising_strategy_is_isolated():

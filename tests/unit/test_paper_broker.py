@@ -122,3 +122,25 @@ def test_logs_a_rejected_order_and_counts_it():
     assert len(log) == 1
     assert log[0]["status"] == "rejected"
     assert b.summary()["rejects"] == 1
+
+
+def test_maker_fill_when_price_moves_through_a_resting_order():
+    b = PaperBroker("s", bankroll=1000.0)
+    # Passive BUY @ 0.40 while ask is 0.45 -> rests, no fill yet.
+    b.execute(_buy(0.40), _mkt(best_bid=0.39, best_ask=0.45))
+    assert b.positions() == []
+    # Next tick: ask drops to 0.40 -> the market moved through the resting bid -> maker fill.
+    b.settle_resting({"t1": _mkt(best_bid=0.38, best_ask=0.40)}, ts="2026-06-29T03:00:00")
+    pos = {p.token_id: p for p in b.positions()}
+    assert pos["t1"].size == 10.0 and pos["t1"].avg_cost == 0.40
+    assert b.summary()["fills"] == 1
+
+
+def test_unfilled_resting_is_cancelled_and_not_refilled():
+    b = PaperBroker("s", bankroll=1000.0)
+    b.execute(_buy(0.40), _mkt(best_ask=0.45))            # rests
+    b.settle_resting({"t1": _mkt(best_ask=0.45)}, ts="t")  # still not marketable -> cancelled
+    assert b.positions() == []
+    # Even if price later drops, the cancelled order must not fill (it was replaced).
+    b.settle_resting({"t1": _mkt(best_ask=0.40)}, ts="t")
+    assert b.positions() == []
