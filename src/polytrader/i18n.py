@@ -50,6 +50,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "live_engine": {"en": "Live engine", "zh": "实盘引擎"},
     "paper_running": {"en": "🟢 Paper Lab running", "zh": "🟢 Paper Lab 运行中"},
     "paper_idle": {"en": "🔴 Paper Lab idle (no runner)", "zh": "🔴 Paper Lab 未运行（无 runner）"},
+    "src_replay": {"en": "🟣 REPLAY — synthetic prices (not real market data)",
+                   "zh": "🟣 回放模拟 — 合成行情(非真实市场数据)"},
+    "src_live": {"en": "📡 live market data", "zh": "📡 真实行情"},
     "updated_ago": {"en": "updated {s}s ago", "zh": "更新于 {s} 秒前"},
     "order_details": {"en": "Order details", "zh": "订单详情"},
     "click_row_hint": {

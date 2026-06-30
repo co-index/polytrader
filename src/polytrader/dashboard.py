@@ -114,7 +114,8 @@ def _display_order(o: dict, _, tz_name: str | None) -> dict:
 def _render_paper_status(_) -> None:
     """Live Paper Lab heartbeat: green + 'updated Ns ago' when the runner is writing,
     red when no fresh snapshot. Auto-refreshed so it ticks while a runner is alive."""
-    last = get_paper_store().last_update()
+    store = get_paper_store()
+    last = store.last_update()
     now = datetime.now(UTC)
     if last and _heartbeat_ok(last, now, _HEARTBEAT_MAX_AGE_S):
         try:
@@ -124,6 +125,12 @@ def _render_paper_status(_) -> None:
         st.markdown(f"**{_('paper_running')}** · {_('updated_ago').format(s=age)}")
     else:
         st.markdown(f"**{_('paper_idle')}**")
+    # Honest data-source badge: synthetic replay vs live market data.
+    src = store.get_meta("data_source")
+    if src == "replay":
+        st.warning(_("src_replay"))
+    elif src == "live":
+        st.caption(_("src_live"))
 
 
 def _open_trades_dialog(name: str, label: str, _) -> None:

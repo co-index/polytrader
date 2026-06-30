@@ -17,6 +17,16 @@ def test_write_then_read_sorted_by_total_pnl_desc():
     assert names == ["b", "c", "a"]
 
 
+def test_meta_set_and_get_with_default():
+    s = PaperStore(":memory:")
+    s.init_schema()
+    assert s.get_meta("data_source") is None
+    s.set_meta("data_source", "replay (synthetic)")
+    assert s.get_meta("data_source") == "replay (synthetic)"
+    s.set_meta("data_source", "live")  # overwrites
+    assert s.get_meta("data_source") == "live"
+
+
 def test_last_update_returns_snapshot_ts_or_none():
     s = PaperStore(":memory:")
     s.init_schema()
