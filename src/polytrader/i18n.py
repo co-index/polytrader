@@ -82,6 +82,7 @@ STRATEGY_LABELS: dict[str, dict[str, str]] = {
     "market_making": {"en": "Market making", "zh": "做市/价差捕获"},
     "mean_reversion": {"en": "Mean reversion", "zh": "均值回归"},
     "momentum": {"en": "Momentum", "zh": "动量/趋势"},
+    "follow": {"en": "Copy-follow", "zh": "跟单"},
     "complementary_arb": {"en": "Complementary arb", "zh": "互补结果套利"},
     "example": {"en": "Example (baseline)", "zh": "示例（基准）"},
 }

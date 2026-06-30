@@ -101,6 +101,7 @@ def main() -> None:  # pragma: no cover - wiring entry point
     from ..config import Settings
     from ..strategy.complementary_arb import ComplementaryArbStrategy
     from ..strategy.example import ExampleStrategy
+    from ..strategy.follow import FollowStrategy
     from ..strategy.market_making import MarketMakingStrategy
     from ..strategy.mean_reversion import MeanReversionStrategy
     from ..strategy.momentum import MomentumStrategy
@@ -115,6 +116,7 @@ def main() -> None:  # pragma: no cover - wiring entry point
         MarketMakingStrategy(),
         MeanReversionStrategy(),
         MomentumStrategy(),
+        FollowStrategy(),
         ComplementaryArbStrategy(),
         ExampleStrategy(),
     ]
