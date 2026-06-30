@@ -37,7 +37,7 @@ def test_second_write_replaces_snapshot():
 
 def _order(ts, token_id="t1", side="BUY", size=5.0, price=0.4):
     return {"ts": ts, "token_id": token_id, "side": side, "size": size,
-            "price": price, "status": "filled"}
+            "price": price, "status": "filled", "pnl": 0.0}
 
 
 def test_write_and_read_orders_per_strategy():

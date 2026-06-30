@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 pytest.importorskip("streamlit")
-from polytrader.dashboard import _filter_orders, _heartbeat_ok  # noqa: E402
+from polytrader.dashboard import _filter_orders, _heartbeat_ok, _localize_ts  # noqa: E402
 
 ORDERS = [
     {"ts": "t1", "token_id": "alpha", "side": "BUY", "size": 5.0,
@@ -53,3 +53,19 @@ def test_heartbeat_false_when_stale():
 
 def test_heartbeat_false_on_unparseable_timestamp():
     assert _heartbeat_ok("not-a-time", _NOW, 30) is False
+
+
+def test_localize_ts_converts_utc_to_browser_timezone():
+    # 04:32 UTC -> 12:32 in Shanghai (UTC+8)
+    assert _localize_ts("2026-06-30T04:32:00+00:00", "Asia/Shanghai") == "2026-06-30 12:32:00"
+
+
+def test_localize_ts_assumes_utc_when_naive():
+    assert _localize_ts("2026-06-30T04:32:00", "Asia/Shanghai") == "2026-06-30 12:32:00"
+
+
+def test_localize_ts_falls_back_on_bad_input():
+    assert _localize_ts("not-a-time", "Asia/Shanghai") == "not-a-time"
+    # Unknown tz -> render in UTC rather than crash.
+    assert _localize_ts("2026-06-30T04:32:00+00:00", "Bogus/Zone") == "2026-06-30 04:32:00"
+    assert _localize_ts("2026-06-30T04:32:00+00:00", None) == "2026-06-30 04:32:00"

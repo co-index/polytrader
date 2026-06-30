@@ -13,7 +13,7 @@ from pathlib import Path
 _COLS = ("name", "equity", "total_pnl", "realized", "unrealized",
          "fills", "positions", "wins", "trades", "rejects")
 
-_ORDER_COLS = ("ts", "token_id", "side", "size", "price", "status")
+_ORDER_COLS = ("ts", "token_id", "side", "size", "price", "status", "pnl")
 
 
 class PaperStore:
@@ -38,7 +38,7 @@ class PaperStore:
             """
             CREATE TABLE IF NOT EXISTS paper_orders (
                 strategy TEXT, ts TEXT, token_id TEXT, side TEXT,
-                size REAL, price REAL, status TEXT
+                size REAL, price REAL, status TEXT, pnl REAL
             )
             """
         )
@@ -71,9 +71,9 @@ class PaperStore:
         c = self._conn
         c.execute("DELETE FROM paper_orders WHERE strategy = ?", (strategy,))
         c.executemany(
-            "INSERT INTO paper_orders (strategy, ts, token_id, side, size, price, status)"
-            " VALUES (?,?,?,?,?,?,?)",
-            [(strategy, *(r[k] for k in _ORDER_COLS)) for r in rows],
+            "INSERT INTO paper_orders (strategy, ts, token_id, side, size, price, status, pnl)"
+            " VALUES (?,?,?,?,?,?,?,?)",
+            [(strategy, *(r.get(k, 0.0) for k in _ORDER_COLS)) for r in rows],
         )
         c.commit()
 

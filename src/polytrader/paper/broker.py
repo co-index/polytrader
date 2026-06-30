@@ -68,10 +68,10 @@ class PaperBroker:
     def _fill(self, token_id: str, market_id: str, side: str, size: float, price: float,
               ts: str) -> None:
         delta = size if side == "BUY" else -size
-        self._apply(token_id, market_id, delta, price)
+        realized = self._apply(token_id, market_id, delta, price)
         self.cash += -delta * price
         self.fills += 1
-        self._log(ts, token_id, side, size, price, "filled")
+        self._log(ts, token_id, side, size, price, "filled", realized)
 
     def record_rejected(self, intent: OrderIntent, ts: str = "", reason: str = "") -> None:
         """Log a risk-rejected order and count it."""
@@ -79,15 +79,18 @@ class PaperBroker:
         self._log(ts, intent.token_id, intent.side, intent.size, intent.price, "rejected")
 
     def _log(self, ts: str, token_id: str, side: str, size: float, price: float,
-             status: str) -> None:
+             status: str, pnl: float = 0.0) -> None:
         self._orders.append({"ts": ts, "token_id": token_id, "side": side,
-                             "size": size, "price": price, "status": status})
+                             "size": size, "price": price, "status": status,
+                             "pnl": round(pnl, 4)})
 
     def orders(self) -> list[dict]:
         """Every order placed (filled / resting / rejected), oldest first, capped."""
         return list(self._orders)
 
-    def _apply(self, token_id: str, market_id: str, delta: float, price: float) -> None:
+    def _apply(self, token_id: str, market_id: str, delta: float, price: float) -> float:
+        """Apply a fill to the position; return the realized P&L booked by this trade
+        (0 when opening/increasing, ±gain when reducing/closing)."""
         p = self._pos.setdefault(token_id, _Pos(market_id=market_id))
         old = p.size
         if old == 0 or (old > 0) == (delta > 0):
@@ -95,11 +98,12 @@ class PaperBroker:
             new_size = old + delta
             p.avg_cost = (abs(old) * p.avg_cost + abs(delta) * price) / abs(new_size)
             p.size = new_size
-            return
+            return 0.0
         # Reducing / closing / flipping: book realized P&L on the closed quantity.
         closed = min(abs(old), abs(delta))
         gain = (price - p.avg_cost) if old > 0 else (p.avg_cost - price)
-        self.realized += gain * closed
+        realized = gain * closed
+        self.realized += realized
         self.trades += 1
         if gain > 0:
             self.wins += 1
@@ -109,6 +113,7 @@ class PaperBroker:
         elif new_size == 0:
             p.avg_cost = 0.0
         p.size = new_size
+        return realized
 
     # ---- valuation ----
     def mark_to_market(self, markets: list[MarketState]) -> None:

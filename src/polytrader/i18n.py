@@ -65,6 +65,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "ord_size": {"en": "size", "zh": "数量"},
     "ord_price": {"en": "price", "zh": "价格"},
     "ord_status": {"en": "status", "zh": "状态"},
+    "ord_pnl": {"en": "P&L", "zh": "盈亏"},
     "st_filled": {"en": "filled", "zh": "成交"},
     "st_resting": {"en": "resting", "zh": "挂单"},
     "st_rejected": {"en": "rejected", "zh": "拒单"},

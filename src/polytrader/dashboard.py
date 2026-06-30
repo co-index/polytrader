@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 import streamlit as st
 
@@ -80,15 +81,33 @@ def _filter_orders(orders: list[dict], query: str) -> list[dict]:
 _STATUS_KEY = {"filled": "st_filled", "resting": "st_resting", "rejected": "st_rejected"}
 
 
-def _display_order(o: dict, _) -> dict:
-    """Localize an order row's columns and status for display."""
+def _localize_ts(ts_iso: str, tz_name: str | None) -> str:
+    """Render a UTC ISO timestamp in the browser's local timezone (falls back to the raw
+    string if it can't be parsed or no tz is known)."""
+    try:
+        dt = datetime.fromisoformat(ts_iso)
+    except (ValueError, TypeError):
+        return ts_iso
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    if tz_name:
+        try:
+            dt = dt.astimezone(ZoneInfo(tz_name))
+        except Exception:  # noqa: BLE001 - unknown tz name -> leave as UTC
+            pass
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _display_order(o: dict, _, tz_name: str | None) -> dict:
+    """Localize an order row's columns, status, and time for display."""
     return {
-        _("ord_time"): o["ts"],
+        _("ord_time"): _localize_ts(o["ts"], tz_name),
         _("ord_token"): o["token_id"],
         _("ord_side"): o["side"],
         _("ord_size"): o["size"],
         _("ord_price"): o["price"],
         _("ord_status"): _(_STATUS_KEY.get(o["status"], o["status"])),
+        _("ord_pnl"): round(o.get("pnl", 0.0), 2),
     }
 
 
@@ -111,13 +130,15 @@ def _open_trades_dialog(name: str, label: str, _) -> None:
     """Modal popup listing one strategy's orders (filled / resting / rejected), newest
     first, with a search filter and a Close button."""
 
+    tz_name = getattr(st.context, "timezone", None)
+
     @st.dialog(f"{_('order_details')} · {label}", width="large")
     def _dialog() -> None:
         if st.button(_("close"), key="close_trades"):
             st.session_state["trades_for"] = None
             st.rerun()
         query = st.text_input(_("search"), key="trade_search")
-        rows = [_display_order(o, _) for o in reversed(get_paper_store().orders(name))]
+        rows = [_display_order(o, _, tz_name) for o in reversed(get_paper_store().orders(name))]
         rows = _filter_orders(rows, query)
         if rows:
             st.dataframe(rows, width="stretch", hide_index=True)

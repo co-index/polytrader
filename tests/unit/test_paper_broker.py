@@ -124,6 +124,15 @@ def test_logs_a_rejected_order_and_counts_it():
     assert b.summary()["rejects"] == 1
 
 
+def test_order_log_records_realized_pnl_per_trade():
+    b = PaperBroker("s", bankroll=1000.0)
+    b.execute(_buy(0.40), _mkt(best_ask=0.40))   # open long -> no realized P&L
+    b.execute(_sell(0.50), _mkt(best_bid=0.50))  # close -> (0.50-0.40)*10 = 1.0
+    log = b.orders()
+    assert log[0]["status"] == "filled" and log[0]["pnl"] == 0.0
+    assert abs(log[1]["pnl"] - 1.0) < 1e-9
+
+
 def test_maker_fill_when_price_moves_through_a_resting_order():
     b = PaperBroker("s", bankroll=1000.0)
     # Passive BUY @ 0.40 while ask is 0.45 -> rests, no fill yet.
