@@ -18,6 +18,8 @@ _DEFAULT = "zh"
 TRANSLATIONS: dict[str, dict[str, str]] = {
     "running": {"en": "RUNNING", "zh": "运行中"},
     "stopped": {"en": "STOPPED", "zh": "已停止"},
+    "no_heartbeat": {"en": "ENABLED · no heartbeat (engine not ticking)",
+                     "zh": "已启用 · 无心跳(引擎未在运行)"},
     "mode": {"en": "mode", "zh": "模式"},
     "live_warning": {"en": "⚠️ LIVE — real funds", "zh": "⚠️ 实盘 — 真实资金"},
     "dry_run_note": {"en": "🧪 dry-run (simulated)", "zh": "🧪 模拟盘（仿真）"},

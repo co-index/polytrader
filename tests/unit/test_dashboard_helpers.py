@@ -1,9 +1,11 @@
 """Unit tests for the dashboard's pure helpers (no Streamlit runtime needed)."""
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 
 pytest.importorskip("streamlit")
-from polytrader.dashboard import _filter_orders  # noqa: E402
+from polytrader.dashboard import _filter_orders, _heartbeat_ok  # noqa: E402
 
 ORDERS = [
     {"ts": "t1", "token_id": "alpha", "side": "BUY", "size": 5.0,
@@ -29,3 +31,25 @@ def test_filter_matches_numeric_fields():
 
 def test_no_match_returns_empty():
     assert _filter_orders(ORDERS, "zzz") == []
+
+
+_NOW = datetime(2026, 6, 30, 12, 0, 0, tzinfo=UTC)
+
+
+def test_heartbeat_false_when_never_ticked():
+    assert _heartbeat_ok(None, _NOW, 30) is False
+    assert _heartbeat_ok("", _NOW, 30) is False
+
+
+def test_heartbeat_true_when_recent():
+    recent = (_NOW - timedelta(seconds=5)).isoformat()
+    assert _heartbeat_ok(recent, _NOW, 30) is True
+
+
+def test_heartbeat_false_when_stale():
+    stale = (_NOW - timedelta(seconds=120)).isoformat()
+    assert _heartbeat_ok(stale, _NOW, 30) is False
+
+
+def test_heartbeat_false_on_unparseable_timestamp():
+    assert _heartbeat_ok("not-a-time", _NOW, 30) is False

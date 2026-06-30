@@ -10,6 +10,7 @@ Run:  streamlit run src/polytrader/dashboard.py
 from __future__ import annotations
 
 import os
+from datetime import UTC, datetime
 
 import streamlit as st
 
@@ -33,13 +34,37 @@ def get_paper_store() -> PaperStore:
     return paper
 
 
+_HEARTBEAT_MAX_AGE_S = 30
+
+
+def _heartbeat_ok(last_tick_ts: str | None, now: datetime, max_age_s: float) -> bool:
+    """True only if the engine ticked within max_age_s — proof a process is actually live."""
+    if not last_tick_ts:
+        return False
+    try:
+        t = datetime.fromisoformat(last_tick_ts)
+    except ValueError:
+        return False
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=UTC)
+    return (now - t).total_seconds() <= max_age_s
+
+
 def _render_status(store: Store, _) -> None:
-    """Live status banner — re-reads the store so auto-refresh shows the truth."""
+    """Live status banner — re-reads the store so auto-refresh shows the truth.
+
+    'run' is only a command flag; we show green RUNNING only when there's a recent tick
+    (heartbeat). run=True with no heartbeat means commanded-on but no engine is ticking.
+    """
     state = store.get_engine_state()
-    running = _("running") if state.run else _("stopped")
-    badge = "🟢" if state.run else "🔴"
+    if not state.run:
+        badge, status = "🔴", _("stopped")
+    elif _heartbeat_ok(state.last_tick_ts, datetime.now(UTC), _HEARTBEAT_MAX_AGE_S):
+        badge, status = "🟢", _("running")
+    else:
+        badge, status = "🟠", _("no_heartbeat")
     warn = "  " + (_("live_warning") if state.mode == "live" else _("dry_run_note"))
-    st.subheader(f"{badge} {running} · {_('mode')}: {state.mode}{warn}")
+    st.subheader(f"{badge} {status} · {_('mode')}: {state.mode}{warn}")
     if state.stopped_reason:
         st.error(_("stopped_reason").format(reason=state.stopped_reason))
 

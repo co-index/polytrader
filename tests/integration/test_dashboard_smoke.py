@@ -2,6 +2,8 @@
 shows engine status — using Streamlit's official AppTest harness.
 """
 
+from datetime import UTC, datetime
+
 import pytest
 
 from polytrader.paper.store import PaperStore
@@ -25,14 +27,29 @@ def _seed_paper(db_path: str):
     ])
 
 
-def _seed(db_path: str):
+def _seed(db_path: str, *, with_heartbeat: bool = True):
     store = Store(db_path)
     store.init_schema()
     store.set_command(run=True, mode="dry_run")
+    if with_heartbeat:  # simulate a live engine that just ticked
+        store.set_status(last_tick_ts=datetime.now(UTC).isoformat())
     store.record_order(Order(
         ts="2026-06-29T00:00:00", market_id="m1", token_id="t1", side="BUY",
         size=1.0, price=0.4, mode="dry_run", status="placed"))
     store.log_event("info", "engine", "started")
+
+
+def test_run_flag_without_heartbeat_is_not_shown_as_running(tmp_path, monkeypatch):
+    db = str(tmp_path / "dash.db")
+    _seed(db, with_heartbeat=False)  # commanded on, but no engine ticking
+    monkeypatch.setenv("POLYTRADER_DB", db)
+
+    at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
+    at.run()
+    assert not at.exception
+    # Must NOT claim 运行中; shows the no-heartbeat state instead.
+    assert any("无心跳" in s.value for s in at.subheader)
+    assert not any("· 运行中 ·" in s.value for s in at.subheader)
 
 
 def test_dashboard_renders_and_shows_status(tmp_path, monkeypatch):
