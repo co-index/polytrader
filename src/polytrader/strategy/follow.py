@@ -28,10 +28,13 @@ class FollowStrategy:
             self._last[m.token_id] = m.midpoint
             if prev is None:
                 continue
-            if m.midpoint > prev and m.best_ask > 0:
+            # Spread-aware: only chase a move large enough to clear the spread we cross.
+            spread = m.best_ask - m.best_bid if m.best_ask > 0 and m.best_bid > 0 else 0.0
+            move = m.midpoint - prev
+            if move > spread and m.best_ask > 0:
                 intents.append(OrderIntent(market_id=m.market_id, token_id=m.token_id,
                                            side="BUY", size=self.size, price=m.best_ask))
-            elif m.midpoint < prev and m.best_bid > 0:
+            elif -move > spread and m.best_bid > 0:
                 intents.append(OrderIntent(market_id=m.market_id, token_id=m.token_id,
                                            side="SELL", size=self.size, price=m.best_bid))
         return intents

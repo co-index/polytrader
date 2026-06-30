@@ -26,23 +26,29 @@ def test_no_trade_on_first_tick():
 
 def test_follows_up_move_by_buying_the_ask():
     strat = FollowStrategy(size=1.0)
-    out = _feed(strat, [0.50, 0.52])  # price rose
+    out = _feed(strat, [0.50, 0.54])  # rose 0.04 > spread 0.02
     assert len(out) == 1
     assert out[0].side == "BUY"
-    assert out[0].price == _mkt(0.52).best_ask  # marketable (crosses) -> will fill
+    assert out[0].price == _mkt(0.54).best_ask  # marketable (crosses) -> will fill
 
 
 def test_follows_down_move_by_selling_the_bid():
     strat = FollowStrategy(size=1.0)
-    out = _feed(strat, [0.50, 0.48])  # price fell
+    out = _feed(strat, [0.50, 0.46])  # fell 0.04 > spread 0.02
     assert len(out) == 1
     assert out[0].side == "SELL"
-    assert out[0].price == _mkt(0.48).best_bid
+    assert out[0].price == _mkt(0.46).best_bid
 
 
 def test_no_trade_when_price_unchanged():
     strat = FollowStrategy(size=1.0)
     assert _feed(strat, [0.50, 0.50]) == []
+
+
+def test_no_trade_when_move_smaller_than_spread():
+    # _mkt spread is 0.02; a 0.01 move is not worth crossing.
+    strat = FollowStrategy(size=1.0)
+    assert _feed(strat, [0.50, 0.51]) == []
 
 
 def test_is_a_strategy():

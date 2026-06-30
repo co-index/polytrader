@@ -44,5 +44,18 @@ def test_no_trade_when_flat():
     assert out == []
 
 
+def test_no_trade_when_move_does_not_beat_a_wide_spread():
+    # Wide book: spread 0.10. A 0.04 move beats threshold 0.03 but not the spread,
+    # so crossing would lose -> no trade.
+    def _wide(mid):
+        return MarketState("m1", "t1", "Q?", best_bid=mid - 0.05, best_ask=mid + 0.05,
+                           midpoint=mid, timestamp="t")
+    strat = MomentumStrategy(window=3, threshold=0.03)
+    last = []
+    for mid in [0.40, 0.42, 0.44]:  # rose 0.04 over the window
+        last = strat.on_tick([_wide(mid)], _ctx())
+    assert last == []
+
+
 def test_is_a_strategy():
     assert isinstance(MomentumStrategy(), Strategy)

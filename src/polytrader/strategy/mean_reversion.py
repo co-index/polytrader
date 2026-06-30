@@ -32,10 +32,14 @@ class MeanReversionStrategy:
             if len(hist) < self.window:
                 continue
             mean = sum(hist) / len(hist)
-            if m.midpoint <= mean - self.threshold and m.best_ask > 0:
+            # Spread-aware: the deviation must beat the spread we cross, else the round
+            # trip loses the bid-ask no matter how cleanly it reverts.
+            spread = m.best_ask - m.best_bid if m.best_ask > 0 and m.best_bid > 0 else 0.0
+            bar = max(self.threshold, spread)
+            if m.midpoint <= mean - bar and m.best_ask > 0:
                 intents.append(OrderIntent(market_id=m.market_id, token_id=m.token_id,
                                            side="BUY", size=self.size, price=m.best_ask))
-            elif m.midpoint >= mean + self.threshold and m.best_bid > 0:
+            elif m.midpoint >= mean + bar and m.best_bid > 0:
                 intents.append(OrderIntent(market_id=m.market_id, token_id=m.token_id,
                                            side="SELL", size=self.size, price=m.best_bid))
         return intents

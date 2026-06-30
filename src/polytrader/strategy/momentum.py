@@ -31,10 +31,14 @@ class MomentumStrategy:
             if len(hist) < self.window:
                 continue
             oldest = hist[0]
-            if m.midpoint >= oldest + self.threshold and m.best_ask > 0:
+            # Spread-aware: a taker must clear the bid-ask it crosses, so the move has to
+            # beat the spread, not just the static threshold.
+            spread = m.best_ask - m.best_bid if m.best_ask > 0 and m.best_bid > 0 else 0.0
+            bar = max(self.threshold, spread)
+            if m.midpoint >= oldest + bar and m.best_ask > 0:
                 intents.append(OrderIntent(market_id=m.market_id, token_id=m.token_id,
                                            side="BUY", size=self.size, price=m.best_ask))
-            elif m.midpoint <= oldest - self.threshold and m.best_bid > 0:
+            elif m.midpoint <= oldest - bar and m.best_bid > 0:
                 intents.append(OrderIntent(market_id=m.market_id, token_id=m.token_id,
                                            side="SELL", size=self.size, price=m.best_bid))
         return intents
