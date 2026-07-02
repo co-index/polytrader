@@ -67,6 +67,9 @@ class PolymarketClient:
             chain_id=s.chain_id,
             key=s.wallet_private_key or None,
             creds=creds,
+            # Proxy-wallet accounts sign as the EOA but trade the funder's balance.
+            signature_type=s.poly_signature_type,
+            funder=s.poly_funder_address or None,
         )
 
     def _with_retry(self, fn, *args, **kwargs):
@@ -127,7 +130,10 @@ class PolymarketClient:
 
     # ---- account ----
     def get_balance(self) -> float:
-        resp = self._with_retry(self._clob.get_balance_allowance)
-        if isinstance(resp, dict):
-            return float(resp.get("balance", 0) or 0)
-        return float(getattr(resp, "balance", 0) or 0)
+        """Tradeable USDC collateral. The CLOB reports micro-USDC ('100000000' = $100)."""
+        from py_clob_client.clob_types import AssetType, BalanceAllowanceParams
+
+        params = BalanceAllowanceParams(asset_type=AssetType.COLLATERAL)
+        resp = self._with_retry(self._clob.get_balance_allowance, params)
+        raw = resp.get("balance", 0) if isinstance(resp, dict) else getattr(resp, "balance", 0)
+        return float(raw or 0) / 1e6

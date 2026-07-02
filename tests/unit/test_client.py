@@ -119,3 +119,49 @@ def test_place_order_retries_then_succeeds_on_transient_error():
     assert placed.client_order_id == "ok"
     assert clob.create_and_post_order.call_count == 2
     assert len(sleeps) == 1  # backed off once before the retry
+
+
+def test_build_clob_wires_proxy_creds_into_sdk(monkeypatch):
+    """The real SDK client must receive funder/signature_type (proxy-wallet accounts
+    can't trade without them) and the derived L2 creds."""
+    import py_clob_client.client as sdk
+
+    from polytrader.config import RiskConfig, Secrets, Settings
+
+    captured = {}
+
+    class FakeClob:
+        def __init__(self, host, chain_id=None, key=None, creds=None,
+                     signature_type=None, funder=None):
+            captured.update(host=host, chain_id=chain_id, key=key, creds=creds,
+                            signature_type=signature_type, funder=funder)
+
+    monkeypatch.setattr(sdk, "ClobClient", FakeClob)
+    settings = Settings(
+        risk=RiskConfig(per_order_max_usd=10, total_exposure_max_usd=100,
+                        daily_loss_limit_usd=50),
+        secrets=Secrets(
+            wallet_private_key="0x" + "a" * 64,
+            clob_api_key="k", clob_api_secret="s", clob_api_passphrase="p",
+            poly_funder_address="0xFUNDER", poly_signature_type=1,
+        ),
+    )
+    PolymarketClient._build_clob(settings)
+    assert captured["funder"] == "0xFUNDER"
+    assert captured["signature_type"] == 1
+    assert captured["creds"].api_key == "k"
+
+
+def test_get_balance_converts_micro_usdc_and_passes_params():
+    """CLOB reports collateral in micro-USDC ('100000000' == $100) and the SDK call
+    needs explicit collateral params."""
+    calls = {}
+
+    class FakeClob:
+        def get_balance_allowance(self, params=None):
+            calls["params"] = params
+            return {"balance": "100000000"}
+
+    client = PolymarketClient(_settings(), clob=FakeClob())
+    assert client.get_balance() == 100.0
+    assert calls["params"] is not None
