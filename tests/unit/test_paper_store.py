@@ -70,3 +70,26 @@ def test_write_orders_replaces_that_strategys_rows_only():
     assert len(s.orders("momentum")) == 1
     assert s.orders("momentum")[0]["ts"] == "t9"
     assert len(s.orders("example")) == 1  # untouched
+
+
+def _lb_row(name, pnl=0.0):
+    return {"name": name, "equity": 1000.0 + pnl, "total_pnl": pnl, "realized": pnl,
+            "unrealized": 0.0, "fills": 0, "positions": 0, "wins": 0,
+            "trades": 0, "rejects": 0}
+
+
+def test_write_leaderboard_replaces_only_the_given_strategies():
+    """Two independent writers (strategy runner, basket sim) must not clobber each
+    other: a write replaces rows for the names it carries and leaves others intact."""
+    s = PaperStore(":memory:")
+    s.init_schema()
+    s.write_leaderboard([_lb_row("momentum"), _lb_row("follow")], ts="t1")
+    s.write_leaderboard([_lb_row("basket_arb", pnl=7.5)], ts="t2")
+    s.write_leaderboard([_lb_row("momentum", pnl=-1.0), _lb_row("follow")], ts="t3")
+
+    rows = s.leaderboard()
+    by_name = {r["name"]: r for r in rows}
+    assert set(by_name) == {"momentum", "follow", "basket_arb"}
+    assert by_name["basket_arb"]["total_pnl"] == 7.5   # survived the runner's write
+    assert by_name["momentum"]["total_pnl"] == -1.0    # updated, not duplicated
+    assert s.last_update() == "t3"

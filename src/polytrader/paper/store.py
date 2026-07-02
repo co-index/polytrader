@@ -62,8 +62,15 @@ class PaperStore:
         return row["value"] if row else None
 
     def write_leaderboard(self, rows: list[dict], ts: str) -> None:
+        """Replace the snapshot rows for the strategies in `rows`, leaving other
+        writers' rows intact (the strategy runner and the basket sim co-write)."""
         c = self._conn
-        c.execute("DELETE FROM paper_leaderboard")  # keep only the latest snapshot
+        names = [r["name"] for r in rows]
+        c.execute(
+            f"DELETE FROM paper_leaderboard WHERE name IN "
+            f"({','.join('?' * len(names))})",
+            names,
+        )
         c.executemany(
             "INSERT INTO paper_leaderboard (ts, name, equity, total_pnl, realized,"
             " unrealized, fills, positions, wins, trades, rejects)"

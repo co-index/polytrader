@@ -126,6 +126,7 @@ STRATEGY_LABELS: dict[str, dict[str, str]] = {
     "momentum": {"en": "Momentum", "zh": "动量/趋势"},
     "follow": {"en": "Copy-follow", "zh": "跟单"},
     "complementary_arb": {"en": "Complementary arb", "zh": "互补结果套利"},
+    "basket_arb": {"en": "Basket arb (mint/buy set)", "zh": "篮子套利（铸套卖出/买齐）"},
     "example": {"en": "Example (baseline)", "zh": "示例（基准）"},
 }
 
