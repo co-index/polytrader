@@ -81,12 +81,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "basket_title": {"en": "Basket-arb scanner (read-only)",
                      "zh": "篮子套利扫描（只读）"},
     "basket_note": {
+        # NB: "\\$" — a bare "$…$" pair would be rendered as LaTeX by st.caption.
         "en": "A basket = one YES share of every outcome in a multi-outcome event; "
-              "it always pays $1 at resolution. Σask < 1 → buying the basket locks a "
-              "profit; Σbid > 1 → minting a set for $1 and selling every leg does. "
-              "Scans real Polymarket books every 5 min; never places orders.",
-        "zh": "篮子 = 买齐一个多结果事件的全部结果各一份，结算时必定赔付 $1。"
-              "Σask < 1 → 买入篮子锁定利润；Σbid > 1 → 花 $1 铸一套后全部卖出锁定利润。"
+              "it always pays \\$1 at resolution. Σask < 1 → buying the basket locks "
+              "a profit; Σbid > 1 → minting a set for \\$1 and selling every leg "
+              "does. Scans real Polymarket books every 5 min; never places orders.",
+        "zh": "篮子 = 买齐一个多结果事件的全部结果各一份，结算时必定赔付 \\$1。"
+              "Σask < 1 → 买入篮子锁定利润；Σbid > 1 → 花 \\$1 铸一套后全部卖出锁定利润。"
               "每 5 分钟扫描真实 Polymarket 订单簿，只读、从不下单。",
     },
     "basket_running": {"en": "🟢 Scanner running", "zh": "🟢 扫描器运行中"},
