@@ -323,26 +323,27 @@ def render(store: Store) -> None:
 
     state = store.get_engine_state()
 
-    # ===== Live engine: the single configured strategy, real or dry-run =====
-    st.header(_("live_engine"))
-    st.fragment(run_every=every)(lambda: _render_status(store, _))()
+    # ===== Live engine: the future real-money zone. No engine process exists yet,
+    # so the whole section stays collapsed out of the way until that phase. =====
+    with st.expander(_("live_engine"), expanded=False):
+        st.fragment(run_every=every)(lambda: _render_status(store, _))()
 
-    # ---- controls (write commands to the live store) ----
-    c1, c2, c3 = st.columns(3)
-    # One button toggles run/stop: it shows the action it will perform.
-    if c1.button(_("stop") if state.run else _("start"), key="run_toggle"):
-        store.set_command(run=not state.run)
-        if not state.run:  # we were stopped and are now starting
-            store.set_status(stopped_reason=None)
-        st.rerun()
-    if c2.button(_("toggle_mode")):
-        store.set_command(mode="dry_run" if state.mode == "live" else "live")
-        st.rerun()
-    if c3.button(_("kill")):
-        store.set_command(kill=True)
-        st.rerun()
+        # ---- controls (write commands to the live store) ----
+        c1, c2, c3 = st.columns(3)
+        # One button toggles run/stop: it shows the action it will perform.
+        if c1.button(_("stop") if state.run else _("start"), key="run_toggle"):
+            store.set_command(run=not state.run)
+            if not state.run:  # we were stopped and are now starting
+                store.set_status(stopped_reason=None)
+            st.rerun()
+        if c2.button(_("toggle_mode")):
+            store.set_command(mode="dry_run" if state.mode == "live" else "live")
+            st.rerun()
+        if c3.button(_("kill")):
+            store.set_command(kill=True)
+            st.rerun()
 
-    st.fragment(run_every=every)(lambda: _render_live_data(store, _))()
+        st.fragment(run_every=every)(lambda: _render_live_data(store, _))()
 
     # ===== Paper Lab: all strategies, always simulated =====
     st.header(_("leaderboard"))
