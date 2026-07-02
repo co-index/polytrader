@@ -1,5 +1,9 @@
 """BasketPaperSim honesty + scan() shaping tests."""
 
+import json
+import os
+import tempfile
+
 from polytrader.basket_scanner import BasketPaperSim, scan
 
 
@@ -97,3 +101,61 @@ def test_scan_splits_priced_rows_and_threshold_opps():
     assert len(cycle) == 2                 # both priced
     assert [o["slug"] for o in opps] == ["arb"]  # only arb beats the threshold
     assert opps[0]["side"] == "sell"
+
+
+# --- state persistence tests ---
+
+def test_state_roundtrip_preserves_all_fields():
+    """state() + load_state() must restore every field exactly."""
+    sim = BasketPaperSim()
+    sim.on_cycle("t1", [_sell(depth=200.0)])   # 200 sets * 0.0075 = 1.50 realized
+    sim.on_cycle("t2", [_buy(depth=50.0)])     # 50 sets locked
+    snapshot = sim.state()
+    sim2 = BasketPaperSim()
+    sim2.load_state(snapshot)
+    assert sim2.cash == sim.cash
+    assert sim2.realized == sim.realized
+    assert sim2.locked == sim.locked
+    assert sim2.locked_edge == sim.locked_edge
+    assert sim2.fills == sim.fills
+    assert sim2.wins == sim.wins
+    assert sim2.trades == sim.trades
+    assert sim2.rejects == sim.rejects
+    assert sim2.positions == sim.positions
+    assert sim2.taken == sim.taken
+    assert len(sim2.orders) == len(sim.orders)
+
+
+def test_from_file_starts_fresh_on_missing_path():
+    sim = BasketPaperSim.from_file(None)
+    assert sim.cash == BasketPaperSim.BANKROLL
+    assert sim.fills == 0
+
+
+def test_save_and_load_file_roundtrip():
+    sim = BasketPaperSim()
+    sim.on_cycle("t1", [_sell(depth=100.0)])  # realized=0.75
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+        path = f.name
+    try:
+        sim.save_file(path)
+        assert os.path.exists(path)
+        data = json.loads(open(path).read())
+        assert data["realized"] == sim.realized
+        sim2 = BasketPaperSim.from_file(path)
+        assert sim2.realized == sim.realized
+        assert sim2.fills == sim.fills
+        assert sim2.cash == sim.cash
+    finally:
+        os.unlink(path)
+
+
+def test_from_file_is_resilient_to_corrupt_json():
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        f.write("{{not json}}")
+        path = f.name
+    try:
+        sim = BasketPaperSim.from_file(path)  # must not raise
+        assert sim.cash == BasketPaperSim.BANKROLL  # falls back to fresh
+    finally:
+        os.unlink(path)

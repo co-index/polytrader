@@ -226,10 +226,50 @@ class BasketPaperSim:
     def recent_orders(self, limit: int = 400) -> list[dict]:
         return self.orders[-limit:]
 
+    def state(self) -> dict:
+        return {
+            "cash": self.cash, "locked": self.locked, "locked_edge": self.locked_edge,
+            "realized": self.realized, "fills": self.fills, "wins": self.wins,
+            "trades": self.trades, "rejects": self.rejects, "positions": self.positions,
+            "taken": [[slug, side, sets] for (slug, side), sets in self.taken.items()],
+            "orders": self.orders[-400:],
+        }
+
+    def load_state(self, d: dict) -> None:
+        self.cash = float(d.get("cash", self.BANKROLL))
+        self.locked = float(d.get("locked", 0.0))
+        self.locked_edge = float(d.get("locked_edge", 0.0))
+        self.realized = float(d.get("realized", 0.0))
+        self.fills = int(d.get("fills", 0))
+        self.wins = int(d.get("wins", 0))
+        self.trades = int(d.get("trades", 0))
+        self.rejects = int(d.get("rejects", 0))
+        self.positions = int(d.get("positions", 0))
+        self.taken = {(row[0], row[1]): float(row[2]) for row in d.get("taken", [])}
+        self.orders = list(d.get("orders", []))
+
+    @classmethod
+    def from_file(cls, path: str | None) -> "BasketPaperSim":
+        sim = cls()
+        if path and os.path.exists(path):
+            try:
+                with open(path) as f:
+                    sim.load_state(json.load(f))
+            except (json.JSONDecodeError, OSError, KeyError, IndexError, ValueError):
+                pass  # corrupt state -> start fresh
+        return sim
+
+    def save_file(self, path: str) -> None:
+        tmp = f"{path}.tmp"
+        with open(tmp, "w") as f:
+            json.dump(self.state(), f)
+        os.replace(tmp, path)  # atomic write
+
 
 def run(clob, basket_store, paper_store, *, interval_s: int = DEFAULT_INTERVAL_S,
         edge_min: float = DEFAULT_EDGE_MIN, max_events: int = DEFAULT_MAX_EVENTS,
-        sim: BasketPaperSim | None = None, once: bool = False) -> None:
+        sim: BasketPaperSim | None = None, state_file: str | None = None,
+        once: bool = False) -> None:
     """Scan → persist snapshot + opps → paper-sim → publish leaderboard, forever."""
     sim = sim or BasketPaperSim()
     while True:
@@ -242,6 +282,8 @@ def run(clob, basket_store, paper_store, *, interval_s: int = DEFAULT_INTERVAL_S
         sim.on_cycle(ts, opp_rows)
         paper_store.write_leaderboard([sim.leaderboard_row()], ts=ts)
         paper_store.write_orders("basket_arb", sim.recent_orders())
+        if state_file:
+            sim.save_file(state_file)
         print(f"[{ts}] cycle: {len(cycle_rows)} priced, {len(opp_rows)} opps, "
               f"sim pnl={sim.realized + sim.locked_edge:.2f} ({time.time() - t0:.0f}s)",
               flush=True)
@@ -258,6 +300,7 @@ def main() -> None:  # pragma: no cover - process entry point
 
     basket_db = os.environ.get("POLYTRADER_BASKET_DB", "data/basket.db")
     paper_db = os.environ.get("POLYTRADER_PAPER_DB", "data/paper.db")
+    state_file = os.environ.get("POLYTRADER_SCANNER_STATE", "data/basket_sim_state.json")
     interval = int(os.environ.get("POLYTRADER_SCAN_INTERVAL", DEFAULT_INTERVAL_S))
     edge_min = float(os.environ.get("POLYTRADER_SCAN_EDGE_MIN", DEFAULT_EDGE_MIN))
     max_events = int(os.environ.get("POLYTRADER_SCAN_MAX_EVENTS", DEFAULT_MAX_EVENTS))
@@ -268,11 +311,14 @@ def main() -> None:  # pragma: no cover - process entry point
     paper_store = PaperStore(paper_db)
     paper_store.init_schema()
     paper_store.set_meta("data_source", "live")
+    sim = BasketPaperSim.from_file(state_file)
+    restored = sim.fills > 0
     print(f"basket-scanner starting: interval={interval}s edge_min={edge_min} "
-          f"max_events={max_events} basket_db={basket_db} paper_db={paper_db}",
+          f"max_events={max_events} basket_db={basket_db} paper_db={paper_db} "
+          f"state={'restored' if restored else 'fresh'} pnl={sim.realized + sim.locked_edge:.2f}",
           flush=True)
     run(clob, basket_store, paper_store, interval_s=interval, edge_min=edge_min,
-        max_events=max_events)
+        max_events=max_events, sim=sim, state_file=state_file)
 
 
 if __name__ == "__main__":  # pragma: no cover
