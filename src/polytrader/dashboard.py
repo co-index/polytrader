@@ -128,7 +128,9 @@ def _render_paper_status(_) -> None:
     store = get_paper_store()
     last = store.last_update()
     now = datetime.now(UTC)
-    if last and _heartbeat_ok(last, now, _HEARTBEAT_MAX_AGE_S):
+    # The only paper writer is the 5-min basket sim, so "running" tolerates one
+    # slow cycle (same window as the basket scanner section).
+    if last and _heartbeat_ok(last, now, _BASKET_MAX_AGE_S):
         try:
             age = max(0, int((now - datetime.fromisoformat(last)).total_seconds()))
         except ValueError:
