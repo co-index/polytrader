@@ -89,43 +89,26 @@ class PaperRunner:
             time.sleep(self.tick_interval_seconds)
 
 
-def main() -> None:  # pragma: no cover - wiring entry point
-    """Run all five strategies as paper accounts against live market data.
+def main() -> None:  # pragma: no cover - retired entry point
+    """RETIRED. The six directional/market-making paper strategies (market_making,
+    mean_reversion, momentum, follow, complementary_arb, example) are no longer run:
+    on real Polymarket books they essentially never profit (moves < spread; arb sum
+    > 1). The Paper Lab now runs only the basket-arb scanner, which captures the one
+    structural edge that actually exists.
 
-    Reads config.yaml for risk limits + the markets to poll, then writes a leaderboard
-    snapshot each tick to the paper DB the dashboard reads (POLYTRADER_PAPER_DB).
+    The `PaperRunner` class above and the strategy classes remain importable for
+    experiments/tests, but this launcher will not spawn them. Run the scanner instead:
+
+        polytrader-scanner        # or: python -m polytrader.basket_scanner
     """
-    import os
+    import sys
 
-    from ..client import PolymarketClient
-    from ..config import Settings
-    from ..strategy.complementary_arb import ComplementaryArbStrategy
-    from ..strategy.example import ExampleStrategy
-    from ..strategy.follow import FollowStrategy
-    from ..strategy.market_making import MarketMakingStrategy
-    from ..strategy.mean_reversion import MeanReversionStrategy
-    from ..strategy.momentum import MomentumStrategy
-
-    settings = Settings.load("config.yaml", env=os.environ)
-    client = PolymarketClient(settings)
-
-    store = PaperStore(os.environ.get("POLYTRADER_PAPER_DB", "data/paper.db"))
-    store.init_schema()
-
-    strategies: list[Strategy] = [
-        MarketMakingStrategy(),
-        MeanReversionStrategy(),
-        MomentumStrategy(),
-        FollowStrategy(),
-        ComplementaryArbStrategy(),
-        ExampleStrategy(),
-    ]
-    entries: list[Entry] = []
-    for strat in strategies:
-        broker = PaperBroker(strat.name)
-        entries.append((strat, broker, RiskManager(settings.risk, broker)))
-
-    PaperRunner(client, store, entries, tick_interval_seconds=settings.tick_interval_seconds).run()
+    sys.stderr.write(
+        "polytrader.paper.runner is retired (the 6 directional strategies never "
+        "profited on real books).\nRun the basket-arb scanner instead:\n"
+        "    polytrader-scanner\n"
+    )
+    raise SystemExit(2)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -29,6 +29,8 @@ markets ─▶ engine ─▶ strategy ─▶ risk gate ─▶ simulate (dry-run)
 | `engine.py` | Tick loop: data → strategy → risk → execute → record |
 | `store.py` | SQLite persistence + engine⇄dashboard command channel |
 | `dashboard.py` | Streamlit monitor + controls (start/stop, mode, kill switch) |
+| `basket.py` | `BasketStore` — snapshot + opportunity log for the basket scanner |
+| `basket_scanner.py` | **Read-only** negRisk basket-arb scanner + paper sim (`basket_arb`) |
 
 ## Safety guarantees (binding — see the constitution)
 
@@ -53,11 +55,12 @@ cp config.yaml.example config.yaml  # set markets + market_whitelist; keep limit
 ```bash
 pytest -q                                   # 1. tests must pass first
 
-python -m polytrader.engine                 # 2. engine (starts in dry-run)
+polytrader-scanner                          # 2. paper lab: read-only basket-arb scanner
+                                            #    (or: python -m polytrader.basket_scanner)
 
-python -m polytrader.paper.runner           # 3. paper lab (compare strategies, simulated)
+streamlit run src/polytrader/dashboard.py   # 3. dashboard (monitor, leaderboard)
 
-streamlit run src/polytrader/dashboard.py   # 4. dashboard (monitor, control, leaderboard)
+python -m polytrader.engine                 # 4. (optional) live engine — starts in dry-run
 ```
 
 Default risk limits: per-order ≤ $5, total exposure ≤ $50, daily-loss breaker $20.
@@ -65,12 +68,27 @@ Switch to **live** only from the dashboard, after validating in dry-run.
 
 ### Paper lab (simulate first, fund the winner later)
 
-`python -m polytrader.paper.runner` runs five strategies (market-making, mean-reversion,
-momentum, complementary-arb, example) side by side against live market data, each with
-its own simulated account and a realistic top-of-book fill model. The dashboard shows a
-bilingual leaderboard so you can compare them before risking real funds. Design:
-[docs/superpowers/specs/2026-06-29-paper-trading-lab-design.md](docs/superpowers/specs/2026-06-29-paper-trading-lab-design.md).
-The fill model is a fair *relative* comparison tool, not a live-fill predictor.
+The Paper Lab runs the **basket-arb scanner** (`polytrader-scanner`): a **read-only**
+sweep of Polymarket's negRisk multi-outcome events that logs structural mispricings
+(Σask < 1 to buy a basket, Σbid > 1 to mint & sell one) and paper-executes them under
+honest depth constraints as the `basket_arb` strategy. It never places orders and needs
+no wallet. The dashboard shows a bilingual leaderboard + the live opportunity feed.
+
+> **The six directional/market-making strategies are retired.** Empirically they never
+> profit on real books (moves < spread; arb sums > 1), so `python -m polytrader.paper.runner`
+> is now a no-op stub. The strategy classes remain importable for experiments/tests, but
+> only `basket_arb` is run. See the design note:
+> [docs/superpowers/specs/2026-06-29-paper-trading-lab-design.md](docs/superpowers/specs/2026-06-29-paper-trading-lab-design.md).
+
+> **Runtime data is per-machine, not in git.** The SQLite DBs (`data/*.db`) are
+> `.gitignore`d, so a fresh clone starts with an **empty** leaderboard — it fills once
+> *this machine* runs `polytrader-scanner`. A different leaderboard on another computer
+> means a different local DB / a different process was launched, not a code mismatch.
+
+### Deploy the scanner to a server
+
+`deploy/install.sh` sets up the read-only scanner + dashboard as systemd services on a
+Debian/Ubuntu VPS (≈270 MB RAM, ~1 GB/day). See [deploy/README.md](deploy/README.md).
 
 See [specs/001-core-framework/quickstart.md](specs/001-core-framework/quickstart.md) for
 the full validation walkthrough, and [tasks.md](specs/001-core-framework/tasks.md) for
