@@ -78,6 +78,43 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "zh": "始终是模拟数据，与引擎的实盘/模拟模式无关。实盘成交见上方「实盘引擎」。",
     },
     "language": {"en": "Language", "zh": "语言"},
+    "basket_title": {"en": "Basket-arb scanner (read-only)",
+                     "zh": "篮子套利扫描（只读）"},
+    "basket_note": {
+        "en": "A basket = one YES share of every outcome in a multi-outcome event; "
+              "it always pays $1 at resolution. Σask < 1 → buying the basket locks a "
+              "profit; Σbid > 1 → minting a set for $1 and selling every leg does. "
+              "Scans real Polymarket books every 5 min; never places orders.",
+        "zh": "篮子 = 买齐一个多结果事件的全部结果各一份，结算时必定赔付 $1。"
+              "Σask < 1 → 买入篮子锁定利润；Σbid > 1 → 花 $1 铸一套后全部卖出锁定利润。"
+              "每 5 分钟扫描真实 Polymarket 订单簿，只读、从不下单。",
+    },
+    "basket_running": {"en": "🟢 Scanner running", "zh": "🟢 扫描器运行中"},
+    "basket_idle": {"en": "🔴 Scanner idle (no recent cycle)",
+                    "zh": "🔴 扫描器未运行（无最近扫描）"},
+    "basket_last_scan": {"en": "latest cycle: {n} events priced",
+                         "zh": "最新一轮：完整定价 {n} 个事件"},
+    "basket_opps_title": {"en": "Opportunity log (edge ≥ 0.5c)",
+                          "zh": "机会流水（边际 ≥ 0.5 美分）"},
+    "basket_no_opps": {"en": "No opportunities logged yet.", "zh": "暂无套利机会记录。"},
+    "basket_latest_title": {"en": "Latest full scan (cheapest basket first)",
+                            "zh": "最新一轮全景（Σask 低者在前）"},
+    "basket_no_data": {"en": "No scan data yet.", "zh": "暂无扫描数据。"},
+    "bk_event": {"en": "event", "zh": "事件"},
+    "bk_legs": {"en": "outcomes", "zh": "结果数"},
+    "bk_sum_ask": {"en": "Σask (buy cost)", "zh": "Σask（买入成本）"},
+    "bk_sum_bid": {"en": "Σbid (sell value)", "zh": "Σbid（卖出所得）"},
+    "bk_buy_depth": {"en": "buy depth", "zh": "可买深度"},
+    "bk_sell_depth": {"en": "sell depth", "zh": "可卖深度"},
+    "bk_vol24": {"en": "24h volume", "zh": "24h 成交量"},
+    "bk_link": {"en": "link", "zh": "链接"},
+    "bk_time": {"en": "time", "zh": "时间"},
+    "bk_side": {"en": "direction", "zh": "方向"},
+    "bk_edge": {"en": "edge / $1", "zh": "边际 / $1"},
+    "bk_depth": {"en": "depth (sets)", "zh": "深度（套）"},
+    "bk_cap": {"en": "profit cap ($)", "zh": "利润上限（$）"},
+    "bk_buy": {"en": "buy basket", "zh": "买入篮子"},
+    "bk_sell": {"en": "mint & sell", "zh": "铸套卖出"},
 }
 
 

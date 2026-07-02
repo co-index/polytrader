@@ -167,3 +167,61 @@ def test_clicking_a_strategy_row_pops_up_its_trades_with_search(tmp_path, monkey
     trades = " ".join(str(d.value.to_dict(orient="list")) for d in at.dataframe)
     assert "alpha" in trades and "beta" in trades
     assert at.text_input(key="trade_search") is not None
+
+
+def _seed_basket(db_path: str, *, fresh: bool = True):
+    from polytrader.basket import BasketStore
+    bs = BasketStore(db_path)
+    bs.init_schema()
+    ts = datetime.now(UTC).isoformat() if fresh else "2026-06-30T00:00:00+00:00"
+    bs.write_cycle(ts, [
+        {"title": "Where will talks be held?", "slug": "talks-loc", "n_legs": 19,
+         "sum_ask": 0.978, "sum_bid": 0.85, "buy_depth": 5.0, "sell_depth": 3.0,
+         "vol24": 108690.0},
+        {"title": "Portugal vs. Croatia", "slug": "por-cro", "n_legs": 3,
+         "sum_ask": 1.015, "sum_bid": 1.0075, "buy_depth": 16317.0,
+         "sell_depth": 900.0, "vol24": 5000000.0},
+    ])
+    bs.append_opps([
+        {"ts": ts, "side": "buy", "edge": 0.022, "depth": 5.0, "profit_cap": 0.11,
+         "title": "Where will talks be held?", "slug": "talks-loc",
+         "sum_ask": 0.978, "sum_bid": 0.85},
+    ])
+
+
+def test_basket_scanner_section_shows_snapshot_and_opps(tmp_path, monkeypatch):
+    db = str(tmp_path / "dash.db")
+    basket_db = str(tmp_path / "basket.db")
+    _seed(db)
+    _seed_basket(basket_db)
+    monkeypatch.setenv("POLYTRADER_DB", db)
+    monkeypatch.setenv("POLYTRADER_PAPER_DB", str(tmp_path / "paper.db"))
+    monkeypatch.setenv("POLYTRADER_BASKET_DB", basket_db)
+
+    at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
+    at.run()
+    assert not at.exception
+    headings = [h.value for h in at.header]
+    assert any("篮子" in h for h in headings)
+    # Fresh cycle -> scanner shown as running.
+    assert any("扫描器运行中" in m.value for m in at.markdown)
+    # Snapshot table carries the events and polymarket links; opp log has the buy opp.
+    tables = " ".join(str(d.value.to_dict(orient="list")) for d in at.dataframe)
+    assert "Portugal vs. Croatia" in tables
+    assert "polymarket.com/event/talks-loc" in tables
+    assert "0.978" in tables
+
+
+def test_basket_scanner_idle_without_fresh_cycle(tmp_path, monkeypatch):
+    db = str(tmp_path / "dash.db")
+    basket_db = str(tmp_path / "basket.db")
+    _seed(db)
+    _seed_basket(basket_db, fresh=False)
+    monkeypatch.setenv("POLYTRADER_DB", db)
+    monkeypatch.setenv("POLYTRADER_PAPER_DB", str(tmp_path / "paper.db"))
+    monkeypatch.setenv("POLYTRADER_BASKET_DB", basket_db)
+
+    at = AppTest.from_file("src/polytrader/dashboard.py", default_timeout=30)
+    at.run()
+    assert not at.exception
+    assert any("扫描器未运行" in m.value for m in at.markdown)

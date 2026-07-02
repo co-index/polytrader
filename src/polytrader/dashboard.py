@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 import streamlit as st
 
 from polytrader import i18n
+from polytrader.basket import BasketStore
 from polytrader.config import Settings
 from polytrader.paper.store import PaperStore
 from polytrader.store import Store
@@ -35,7 +36,15 @@ def get_paper_store() -> PaperStore:
     return paper
 
 
+def get_basket_store() -> BasketStore:
+    db_path = os.environ.get("POLYTRADER_BASKET_DB", "data/basket.db")
+    basket = BasketStore(db_path)
+    basket.init_schema()
+    return basket
+
+
 _HEARTBEAT_MAX_AGE_S = 30
+_BASKET_MAX_AGE_S = 660  # scanner cycles every 5 min; allow one slow cycle
 
 
 def _heartbeat_ok(last_tick_ts: str | None, now: datetime, max_age_s: float) -> bool:
@@ -210,6 +219,64 @@ def _render_leaderboard(_, lang: str) -> None:
         _open_trades_dialog(selected, i18n.strategy_label(selected, lang), _)
 
 
+_EVENT_URL = "https://polymarket.com/event/{slug}"
+
+
+def _render_basket(_, tz_name: str | None) -> None:
+    """Read-only negRisk basket scanner: heartbeat, latest full scan (with links to
+    Polymarket), and the append-only opportunity log."""
+    store = get_basket_store()
+    last = store.last_cycle()
+    rows = store.latest()
+    if last and _heartbeat_ok(last, datetime.now(UTC), _BASKET_MAX_AGE_S):
+        beat = f"**{_('basket_running')}**"
+    else:
+        beat = f"**{_('basket_idle')}**"
+    st.markdown(f"{beat} · {_('basket_last_scan').format(n=len(rows))}")
+    st.caption(_("basket_note"))
+
+    if not rows:
+        st.caption(_("basket_no_data"))
+        return
+    link_col = _("bk_link")
+    snapshot = [{
+        _("bk_event"): r["title"],
+        _("bk_sum_ask"): r["sum_ask"],
+        _("bk_sum_bid"): r["sum_bid"],
+        _("bk_legs"): r["n_legs"],
+        _("bk_buy_depth"): r["buy_depth"],
+        _("bk_sell_depth"): r["sell_depth"],
+        _("bk_vol24"): round(r["vol24"]),
+        link_col: _EVENT_URL.format(slug=r["slug"]),
+    } for r in rows]
+    st.markdown(f"##### {_('basket_latest_title')}")
+    st.dataframe(
+        snapshot, width="stretch", hide_index=True,
+        column_config={link_col: st.column_config.LinkColumn(
+            link_col, display_text="polymarket ↗")},
+    )
+
+    st.markdown(f"##### {_('basket_opps_title')}")
+    opps = store.opps()
+    if not opps:
+        st.caption(_("basket_no_opps"))
+        return
+    opp_rows = [{
+        _("bk_time"): _localize_ts(o["ts"], tz_name),
+        _("bk_side"): _("bk_buy") if o["side"] == "buy" else _("bk_sell"),
+        _("bk_edge"): o["edge"],
+        _("bk_depth"): o["depth"],
+        _("bk_cap"): o["profit_cap"],
+        _("bk_event"): o["title"],
+        link_col: _EVENT_URL.format(slug=o["slug"]),
+    } for o in opps]
+    st.dataframe(
+        opp_rows, width="stretch", hide_index=True,
+        column_config={link_col: st.column_config.LinkColumn(
+            link_col, display_text="polymarket ↗")},
+    )
+
+
 def _render_live_data(store: Store, _) -> None:
     """Live engine data (P&L, positions, orders, events) — reads the live store."""
     pnl = store.pnl_today()
@@ -284,6 +351,12 @@ def render(store: Store) -> None:
     st.fragment(run_every=paper_every)(lambda: _render_paper_status(_))()
     st.caption(_("paper_lab_note"))
     _render_leaderboard(_, lang)
+
+    # ===== Basket-arb scanner: read-only structural-mispricing measurements =====
+    st.header(_("basket_title"))
+    tz_name = getattr(st.context, "timezone", None)
+    # Same modal guard as Paper Lab: a periodic fragment rerun would close st.dialog.
+    st.fragment(run_every=paper_every)(lambda: _render_basket(_, tz_name))()
 
 
 def main() -> None:  # pragma: no cover - Streamlit entry
