@@ -1,0 +1,10 @@
+# Install to /etc/logrotate.d/polytrader
+/var/log/polytrader/*.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}

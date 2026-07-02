@@ -1,0 +1,28 @@
+[Unit]
+Description=polytrader read-only Streamlit dashboard
+Documentation=https://github.com/index/polytrader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__APPDIR__
+EnvironmentFile=/etc/polytrader/polytrader.env
+ExecStart=__VENV__/bin/streamlit run src/polytrader/dashboard.py \
+  --server.port ${POLYTRADER_DASHBOARD_PORT} \
+  --server.address 0.0.0.0 \
+  --server.headless true \
+  --browser.gatherUsageStats false
+Restart=always
+RestartSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=__APPDIR__/data
+StandardOutput=append:/var/log/polytrader/dashboard.log
+StandardError=append:/var/log/polytrader/dashboard.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=polytrader SQLite VACUUM (compact scanner databases)
+
+[Service]
+Type=oneshot
+User=__USER__
+EnvironmentFile=/etc/polytrader/polytrader.env
+# SQLite frees pages on DELETE but doesn't shrink the file; VACUUM reclaims it.
+ExecStart=/usr/bin/sqlite3 ${POLYTRADER_BASKET_DB} "VACUUM;"
+ExecStart=/usr/bin/sqlite3 ${POLYTRADER_PAPER_DB} "VACUUM;"

@@ -1,0 +1,25 @@
+[Unit]
+Description=polytrader read-only basket-arb scanner
+Documentation=https://github.com/index/polytrader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__APPDIR__
+EnvironmentFile=/etc/polytrader/polytrader.env
+ExecStart=__VENV__/bin/polytrader-scanner
+Restart=always
+RestartSec=15
+# Read-only workload hardening: it needs the network and its own data dir, nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=__APPDIR__/data
+StandardOutput=append:/var/log/polytrader/scanner.log
+StandardError=append:/var/log/polytrader/scanner.log
+
+[Install]
+WantedBy=multi-user.target

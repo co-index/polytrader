@@ -23,6 +23,7 @@ dev = [
 
 [project.scripts]
 polytrader-engine = "polytrader.engine:main"
+polytrader-scanner = "polytrader.basket_scanner:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/polytrader"]
